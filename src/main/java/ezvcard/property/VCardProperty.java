@@ -44,6 +44,8 @@ import ezvcard.parameter.VCardParameters;
  * Base class for all vCard property classes.
  * @author Michael Angstadt
  */
+@EqualsAndHashCode
+@ToString
 public abstract class VCardProperty implements Comparable<VCardProperty> {
 	/**
 	 * The group that this property belongs to or null if it doesn't belong to a
