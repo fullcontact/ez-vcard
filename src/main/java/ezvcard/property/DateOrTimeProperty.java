@@ -49,6 +49,23 @@ public class DateOrTimeProperty extends VCardProperty implements HasAltId {
 	private PartialDate partialDate;
 	private boolean dateHasTime;
 
+    private DateOrTimeProperty() {}
+
+	@Override
+	public DateOrTimeProperty deepCopy() {
+		DateOrTimeProperty that = new DateOrTimeProperty();
+		copyTo(that);
+		return that;
+	}
+
+	protected void copyTo(final DateOrTimeProperty that) {
+        super.copyTo(that);
+		that.text = this.text;
+		that.date = new Date(this.date.getTime());
+		that.partialDate = this.partialDate; // immutable
+		that.dateHasTime = this.dateHasTime;
+	}
+
 	/**
 	 * Creates a date-and-or-time property.
 	 * @param date the date value

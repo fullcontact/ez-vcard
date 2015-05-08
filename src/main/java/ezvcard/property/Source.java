@@ -66,6 +66,13 @@ public class Source extends UriProperty implements HasAltId {
 	}
 
 	@Override
+	public Source deepCopy() {
+		Source that = new Source(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public List<Integer[]> getPids() {
 		return super.getPids();
 	}

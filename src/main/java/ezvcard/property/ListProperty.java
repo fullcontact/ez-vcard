@@ -44,6 +44,18 @@ import ezvcard.Warning;
 public class ListProperty<T> extends VCardProperty {
 	protected List<T> values = new ArrayList<T>();
 
+	@Override
+	public ListProperty<T> deepCopy() {
+		ListProperty<T> that = new ListProperty<T>();
+		copyTo(that);
+		return that;
+	}
+
+	protected void copyTo(final ListProperty<T> that) {
+		copyTo(that);
+		that.values = new ArrayList<T>(this.values);
+	}
+
 	/**
 	 * Gest the list of values.
 	 * @return the list of values

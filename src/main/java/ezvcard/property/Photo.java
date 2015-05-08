@@ -98,6 +98,13 @@ public class Photo extends ImageProperty {
 		super(url, type);
 	}
 
+	@Override
+	public Photo deepCopy() {
+		Photo that = new Photo(getUrl(), getContentType());
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates a photo property.
 	 * @param data the binary data of the photo

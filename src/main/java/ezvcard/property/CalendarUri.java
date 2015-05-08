@@ -69,6 +69,13 @@ public class CalendarUri extends UriProperty implements HasAltId {
 	}
 
 	@Override
+    public CalendarUri deepCopy() {
+        CalendarUri that = new CalendarUri(value);
+        copyTo(that);
+        return that;
+    }
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V4_0);
 	}

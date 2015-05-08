@@ -41,4 +41,11 @@ public class TextProperty extends SimpleProperty<String> {
 	public TextProperty(String value) {
 		super(value);
 	}
+
+	@Override
+	public TextProperty deepCopy() {
+		TextProperty that = new TextProperty(getValue());
+		copyTo(that);
+		return that;
+	}
 }

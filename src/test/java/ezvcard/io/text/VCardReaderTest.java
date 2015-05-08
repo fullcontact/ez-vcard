@@ -539,6 +539,14 @@ public class VCardReaderTest {
 
 	private static class Nested extends VCardProperty {
 		private VCard vcard = new VCard(); //init this to a new VCard instance to test for the fact that this should be set to null
+
+		@Override
+		public VCardProperty deepCopy() {
+			Nested that = new Nested();
+			copyTo(that);
+			that.vcard = vcard.deepCopy();
+			return that;
+		}
 	}
 
 	private static class NestedScribe extends VCardPropertyScribe<Nested> {
@@ -837,7 +845,10 @@ public class VCardReaderTest {
 	}
 
 	private static class WarningsProperty extends VCardProperty {
-		//empty
+		@Override
+		public VCardProperty deepCopy() {
+			return new WarningsProperty();
+		}
 	}
 
 	private static class WarningsScribe extends VCardPropertyScribe<WarningsProperty> {
@@ -983,6 +994,11 @@ public class VCardReaderTest {
 
 		public ValueProp(VCardDataType dataType) {
 			this.dataType = dataType;
+		}
+
+		@Override
+		public VCardProperty deepCopy() {
+			return new ValueProp(dataType);
 		}
 	}
 

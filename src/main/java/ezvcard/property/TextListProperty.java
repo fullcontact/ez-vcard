@@ -34,5 +34,11 @@ package ezvcard.property;
  * @author Michael Angstadt
  */
 public class TextListProperty extends ListProperty<String> {
-	//empty
+
+	@Override
+	public TextListProperty deepCopy() {
+		TextListProperty that = new TextListProperty();
+		copyTo(that);
+		return that;
+	}
 }

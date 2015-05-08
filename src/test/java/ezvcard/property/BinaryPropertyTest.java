@@ -54,6 +54,11 @@ public class BinaryPropertyTest {
 	}
 
 	private class BinaryTypeImpl extends BinaryProperty<ImageType> {
+		@Override
+		public BinaryProperty deepCopy() {
+			return new BinaryTypeImpl();
+		}
+
 		public BinaryTypeImpl() {
 			super((String) null, null);
 		}

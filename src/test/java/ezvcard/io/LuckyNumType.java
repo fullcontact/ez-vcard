@@ -56,6 +56,13 @@ public class LuckyNumType extends VCardProperty {
 		this.luckyNum = luckyNum;
 	}
 
+	@Override
+	public VCardProperty deepCopy() {
+		LuckyNumType that = new LuckyNumType(luckyNum);
+		copyTo(that);
+		return that;
+	}
+
 	public static class LuckyNumScribe extends VCardPropertyScribe<LuckyNumType> {
 		public LuckyNumScribe() {
 			super(LuckyNumType.class, "X-LUCKY-NUM", new QName("http://luckynum.com", "lucky-num"));

@@ -49,6 +49,11 @@ public class AgeType extends VCardProperty {
 		this.age = age;
 	}
 
+	@Override
+	public VCardProperty deepCopy() {
+		return new AgeType(age);
+	}
+
 	public static class AgeScribe extends VCardPropertyScribe<AgeType> {
 		public AgeScribe() {
 			super(AgeType.class, "X-AGE");

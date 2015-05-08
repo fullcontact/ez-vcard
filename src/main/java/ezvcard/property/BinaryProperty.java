@@ -62,6 +62,14 @@ public abstract class BinaryProperty<T extends MediaTypeParameter> extends VCard
 	 */
 	protected T contentType;
 
+	@Override public abstract BinaryProperty deepCopy();
+
+	protected void copyTo(BinaryProperty<T> that) {
+		that.data = this.data.clone();
+		that.url = this.url;
+		that.contentType = this.contentType;
+	}
+
 	public BinaryProperty() {
 		//empty
 	}

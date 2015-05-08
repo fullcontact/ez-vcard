@@ -65,6 +65,13 @@ public class Note extends TextProperty implements HasAltId {
 	}
 
 	@Override
+	public Note deepCopy() {
+		Note that = new Note(this.value);
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public List<Integer[]> getPids() {
 		return super.getPids();
 	}

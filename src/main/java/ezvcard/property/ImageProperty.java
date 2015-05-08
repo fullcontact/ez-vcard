@@ -40,6 +40,16 @@ import ezvcard.parameter.ImageType;
  * @author Michael Angstadt
  */
 public class ImageProperty extends BinaryProperty<ImageType> {
+
+	protected ImageProperty() {}
+
+	@Override
+	public ImageProperty deepCopy() {
+		ImageProperty that = new ImageProperty();
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates an image property.
 	 * @param url the URL to the image

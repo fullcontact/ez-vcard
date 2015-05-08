@@ -75,6 +75,13 @@ public class Xml extends SimpleProperty<Document> implements HasAltId {
 		this(XmlUtils.toDocument(xml));
 	}
 
+	@Override
+	public Xml deepCopy() {
+		Xml that = new Xml(getValue());
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates an XML property.
 	 * @param element the XML element to use as the property's value (the

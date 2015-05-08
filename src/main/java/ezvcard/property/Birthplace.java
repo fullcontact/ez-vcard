@@ -97,6 +97,13 @@ public class Birthplace extends PlaceProperty {
 		super();
 	}
 
+	@Override
+	public Birthplace deepCopy() {
+		Birthplace that = new Birthplace();
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates a new birthplace property.
 	 * @param latitude the latitude coordinate of the place

@@ -66,6 +66,13 @@ public class Title extends TextProperty implements HasAltId {
 	}
 
 	@Override
+	public Title deepCopy() {
+		Title that = new Title(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public String getLanguage() {
 		return super.getLanguage();
 	}

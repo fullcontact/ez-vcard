@@ -50,6 +50,11 @@ public class SalaryType extends VCardProperty {
 		this.salary = salary;
 	}
 
+	@Override
+	public VCardProperty deepCopy() {
+		return new SalaryType(salary);
+	}
+
 	public static class SalaryScribe extends VCardPropertyScribe<SalaryType> {
 		public SalaryScribe() {
 			super(SalaryType.class, "X-SALARY");

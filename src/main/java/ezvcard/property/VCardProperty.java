@@ -10,6 +10,7 @@ import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.Warning;
 import ezvcard.parameter.VCardParameters;
+import lombok.*;
 
 /*
  Copyright (c) 2012-2015, Michael Angstadt
@@ -335,5 +336,20 @@ public abstract class VCardProperty implements Comparable<VCardProperty> {
 	 */
 	void setIndex(Integer index) {
 		parameters.setIndex(index);
+	}
+
+	/**
+	 * Returns a deep copy of this property such that
+	 * <code>that.deepCopy().equals(that)</code>, and modifications made
+	 * to the copy are not shared by the copied instance.
+	 */
+	public abstract VCardProperty deepCopy();
+
+	/**
+	 * helper method for implementors of deepCopy().
+	 */
+	protected void copyTo(VCardProperty that) {
+		that.group = this.group;
+		that.parameters = new VCardParameters(this.parameters);
 	}
 }

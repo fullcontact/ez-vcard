@@ -93,6 +93,13 @@ public class SortString extends TextProperty {
 	}
 
 	@Override
+	public SortString deepCopy() {
+		SortString that = new SortString(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V3_0);
 	}

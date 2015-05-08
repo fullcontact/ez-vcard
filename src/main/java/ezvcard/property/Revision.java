@@ -64,6 +64,13 @@ public class Revision extends SimpleProperty<Date> {
 		super(date);
 	}
 
+	@Override
+	public Revision deepCopy() {
+		Revision that = new Revision(new Date(getValue().getTime()));
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates a revision property whose value is the current time.
 	 * @return the property

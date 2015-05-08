@@ -95,6 +95,19 @@ public class Address extends VCardProperty implements HasAltId {
 	private String postalCode;
 	private String country;
 
+	@Override public Address deepCopy() {
+		Address that = new Address();
+		this.copyTo(that);
+		that.poBox = this.poBox;
+		that.extendedAddress = this.extendedAddress;
+		that.streetAddress = this.streetAddress;
+		that.locality = this.locality;
+		that.region = this.region;
+		that.postalCode = this.postalCode;
+		that.country = this.country;
+		return that;
+	}
+
 	/**
 	 * Gets the P.O. (post office) box.
 	 * @return the P.O. box or null if not set

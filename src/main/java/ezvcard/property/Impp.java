@@ -84,6 +84,13 @@ public class Impp extends VCardProperty implements HasAltId {
 
 	private URI uri;
 
+	@Override
+	public Impp deepCopy() {
+		Impp that = new Impp(this.uri);
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates an IMPP property. Note that this class has static factory methods
 	 * for creating IMPP properties of common IM protocols.

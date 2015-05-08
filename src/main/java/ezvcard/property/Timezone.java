@@ -73,6 +73,13 @@ public class Timezone extends VCardProperty implements HasAltId {
 	private UtcOffset offset;
 	private String text;
 
+	@Override
+	public Timezone deepCopy() {
+		Timezone that = new Timezone(offset, text);
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates a timezone property.
 	 * @param text a free-form string representing the timezone, preferably a

@@ -89,6 +89,15 @@ public class Related extends VCardProperty implements HasAltId {
 		//empty
 	}
 
+	@Override
+	public Related deepCopy() {
+		Related that = new Related();
+		copyTo(that);
+		that.uri = this.uri;
+		that.text = this.text;
+		return that;
+	}
+
 	/**
 	 * Creates a related property.
 	 * @param uri the URI representing the person

@@ -68,6 +68,13 @@ public class Nickname extends TextListProperty implements HasAltId {
 		return EnumSet.of(VCardVersion.V3_0, VCardVersion.V4_0);
 	}
 
+	@Override
+	public Nickname deepCopy() {
+		Nickname that = new Nickname();
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Gets the TYPE parameter.
 	 * <p>

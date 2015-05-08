@@ -69,6 +69,13 @@ public class FreeBusyUrl extends UriProperty implements HasAltId {
 	}
 
 	@Override
+	public FreeBusyUrl deepCopy() {
+		FreeBusyUrl that = new FreeBusyUrl(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V4_0);
 	}

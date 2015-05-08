@@ -110,6 +110,13 @@ public class Deathdate extends DateOrTimeProperty {
 		super(date);
 	}
 
+	@Override
+	public Deathdate deepCopy() {
+		Deathdate that = new Deathdate(getDate());
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates a deathdate property.
 	 * @param date the deathdate

@@ -75,6 +75,13 @@ public class Interest extends TextProperty implements HasAltId {
 	}
 
 	@Override
+	public Interest deepCopy() {
+		Interest that = new Interest(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V4_0);
 	}

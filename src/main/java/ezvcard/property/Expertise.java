@@ -75,6 +75,13 @@ public class Expertise extends TextProperty implements HasAltId {
 	}
 
 	@Override
+	public Expertise deepCopy() {
+		Expertise that = new Expertise(getValue());
+		copyTo(that);
+		return that;
+	}
+
+    @Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V4_0);
 	}

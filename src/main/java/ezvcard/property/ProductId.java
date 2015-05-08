@@ -68,6 +68,13 @@ public class ProductId extends TextProperty {
 	}
 
 	@Override
+	public ProductId deepCopy() {
+		ProductId that = new ProductId(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V3_0, VCardVersion.V4_0);
 	}

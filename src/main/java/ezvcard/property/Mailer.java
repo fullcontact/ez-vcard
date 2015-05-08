@@ -68,6 +68,13 @@ public class Mailer extends TextProperty {
 	}
 
 	@Override
+	public Mailer deepCopy() {
+		Mailer that = new Mailer(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V2_1, VCardVersion.V3_0);
 	}

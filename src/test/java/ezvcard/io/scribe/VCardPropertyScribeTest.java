@@ -516,5 +516,10 @@ public class VCardPropertyScribeTest {
 			this.value = value;
 			this.parsedDataType = parsedDataType;
 		}
+
+		@Override
+		public VCardProperty deepCopy() {
+			return new TestProperty(value, parsedDataType);
+		}
 	}
 }

@@ -104,6 +104,14 @@ public class Agent extends VCardProperty {
 		//empty
 	}
 
+	public Agent deepCopy() {
+		Agent that = new Agent();
+		this.copyTo(that);
+		that.url = this.url;
+		that.vcard = this.vcard;
+		return that;
+	}
+
 	/**
 	 * Creates an agent property.
 	 * @param url a URL pointing to the agent's information

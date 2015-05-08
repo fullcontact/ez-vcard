@@ -55,6 +55,19 @@ public class PlaceProperty extends VCardProperty implements HasAltId {
 		//empty
 	}
 
+	@Override public PlaceProperty deepCopy() {
+		PlaceProperty that = new PlaceProperty();
+		copyTo(that);
+		return that;
+	}
+
+	protected void copyTo(final PlaceProperty that) {
+		super.copyTo(that);
+		that.geoUri = this.geoUri; // immutable
+		that.uri = this.uri;
+		that.text = this.text;
+	}
+
 	/**
 	 * Creates a new place property.
 	 * @param latitude the latitude coordinate of the place

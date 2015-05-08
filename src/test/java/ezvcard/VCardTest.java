@@ -242,6 +242,13 @@ public class VCardTest {
 		public void setAltId(String altId) {
 			this.altId = altId;
 		}
+
+		@Override
+		public VCardProperty deepCopy() {
+			HasAltIdImpl that = new HasAltIdImpl(altId);
+			copyTo(that);
+			return that;
+		}
 	}
 
 	private class VCardPropertyImpl extends VCardProperty {
@@ -253,6 +260,15 @@ public class VCardTest {
 			validateVersion = version;
 			validateVCard = vcard;
 			warnings.add(new Warning(0));
+		}
+
+		@Override
+		public VCardProperty deepCopy() {
+			VCardPropertyImpl that = new VCardPropertyImpl();
+			copyTo(that);
+			that.validateVersion = this.validateVersion;
+			that.validateVCard = this.validateVCard.deepCopy();
+			return that;
 		}
 	}
 }

@@ -110,6 +110,12 @@ public class Anniversary extends DateOrTimeProperty {
 		super(date);
 	}
 
+	@Override public Anniversary deepCopy() {
+		Anniversary that = new Anniversary(this.getDate());
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates an anniversary property.
 	 * @param date the anniversary date

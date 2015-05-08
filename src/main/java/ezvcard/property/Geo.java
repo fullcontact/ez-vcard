@@ -97,6 +97,13 @@ public class Geo extends VCardProperty implements HasAltId {
 		this(new GeoUri.Builder(latitude, longitude).build());
 	}
 
+	@Override
+	public Geo deepCopy() {
+		Geo that = new Geo(this.uri);
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates a geo property.
 	 * @param uri the geo URI

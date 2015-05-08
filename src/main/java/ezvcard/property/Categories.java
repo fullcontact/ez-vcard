@@ -64,6 +64,13 @@ import ezvcard.VCardVersion;
  */
 public class Categories extends TextListProperty implements HasAltId {
 	@Override
+	public Categories deepCopy() {
+		Categories that = new Categories();
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public List<Integer[]> getPids() {
 		return super.getPids();
 	}

@@ -68,6 +68,13 @@ public class Organization extends TextListProperty implements HasAltId {
 	}
 
 	@Override
+	public Organization deepCopy() {
+		Organization that = new Organization();
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public void setLanguage(String language) {
 		super.setLanguage(language);
 	}

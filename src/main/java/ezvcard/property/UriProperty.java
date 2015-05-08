@@ -41,4 +41,11 @@ public class UriProperty extends TextProperty {
 	public UriProperty(String uri) {
 		super(uri);
 	}
+
+	@Override
+	public UriProperty deepCopy() {
+		UriProperty that = new UriProperty(getValue());
+		copyTo(that);
+		return that;
+	}
 }

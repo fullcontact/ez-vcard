@@ -65,6 +65,13 @@ public class Role extends TextProperty implements HasAltId {
 	}
 
 	@Override
+	public Role deepCopy() {
+		Role that = new Role(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public String getLanguage() {
 		return super.getLanguage();
 	}

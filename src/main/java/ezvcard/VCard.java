@@ -4715,4 +4715,13 @@ public class VCard implements Iterable<VCardProperty> {
 		}
 		return altId + "";
 	}
+
+	public VCard deepCopy() {
+		VCard that = new VCard();
+		that.version = this.version;
+		for (final VCardProperty property : getProperties()) {
+			that.addProperty(property.deepCopy());
+		}
+		return that;
+	}
 }

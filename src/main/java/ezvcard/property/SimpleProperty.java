@@ -51,6 +51,13 @@ public class SimpleProperty<T> extends VCardProperty {
 		this.value = value;
 	}
 
+	@Override
+	public SimpleProperty<T> deepCopy() {
+		SimpleProperty<T> that = new SimpleProperty<T>(value);
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Gets the value of this property.
 	 * @return the value or null if not set

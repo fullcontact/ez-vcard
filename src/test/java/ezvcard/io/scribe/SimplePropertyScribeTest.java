@@ -115,6 +115,11 @@ public class SimplePropertyScribeTest {
 		public TestProperty(String value) {
 			this.value = value;
 		}
+
+		@Override
+		public VCardProperty deepCopy() {
+			return new TestProperty(value);
+		}
 	}
 
 	private Check<TestProperty> hasText(final String text) {

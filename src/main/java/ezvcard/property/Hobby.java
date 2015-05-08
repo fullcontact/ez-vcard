@@ -75,6 +75,13 @@ public class Hobby extends TextProperty implements HasAltId {
 	}
 
 	@Override
+	public Hobby deepCopy() {
+		Hobby that = new Hobby(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V4_0);
 	}

@@ -69,6 +69,13 @@ public class Classification extends TextProperty {
 	}
 
 	@Override
+    public Classification deepCopy() {
+		Classification that = new Classification(this.getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V3_0);
 	}

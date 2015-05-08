@@ -50,6 +50,13 @@ public class MyFormattedNameType extends VCardProperty {
 		this.value = value;
 	}
 
+	@Override
+	public MyFormattedNameType deepCopy() {
+		MyFormattedNameType that = new MyFormattedNameType(value);
+		copyTo(that);
+		return that;
+	}
+
 	public static class MyFormattedNameScribe extends VCardPropertyScribe<MyFormattedNameType> {
 		public MyFormattedNameScribe() {
 			super(MyFormattedNameType.class, "FN");

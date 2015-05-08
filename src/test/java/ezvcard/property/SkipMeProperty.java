@@ -32,5 +32,8 @@ import ezvcard.io.scribe.SkipMeScribe;
  * @author Michael Angstadt
  */
 public class SkipMeProperty extends VCardProperty {
-	//empty
+	@Override
+	public VCardProperty deepCopy() {
+		return this;
+	}
 }

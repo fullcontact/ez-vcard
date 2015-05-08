@@ -113,6 +113,14 @@ public class Key extends BinaryProperty<KeyType> {
 		super();
 	}
 
+	@Override
+	public Key deepCopy() {
+		Key that = new Key();
+		copyTo(that);
+		that.text = this.text;
+		return that;
+	}
+
 	/**
 	 * Creates a key property.
 	 * @param data the binary data

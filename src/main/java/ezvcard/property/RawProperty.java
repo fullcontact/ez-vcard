@@ -49,6 +49,13 @@ public class RawProperty extends TextProperty {
 		this(propertyName, value, null);
 	}
 
+	@Override
+	public RawProperty deepCopy() {
+		RawProperty that = new RawProperty(this.propertyName, this.value);
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates a raw property.
 	 * @param propertyName the property name (e.g. "X-GENDER")

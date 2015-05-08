@@ -80,6 +80,13 @@ public class Member extends UriProperty implements HasAltId {
 		super(uri);
 	}
 
+	@Override
+	public Member deepCopy() {
+		Member that = new Member(getValue());
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates a member property whose value is an email address.
 	 * @param email the email address

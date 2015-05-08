@@ -96,7 +96,10 @@ public class VCardPropertyTest {
 	}
 
 	private class VCardTypeImpl extends VCardProperty {
-		//empty
+		@Override
+		public VCardTypeImpl deepCopy() {
+			return new VCardTypeImpl();
+		}
 	}
 
 	private class ValidateType extends VCardProperty {
@@ -110,6 +113,13 @@ public class VCardPropertyTest {
 		@Override
 		public void _validate(List<Warning> warnings, VCardVersion version, VCard vcard) {
 			validateCalled = true;
+		}
+
+		@Override
+		public ValidateType deepCopy() {
+			ValidateType that = new ValidateType();
+			copyTo(that);
+			return that;
 		}
 	}
 }

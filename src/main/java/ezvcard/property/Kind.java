@@ -92,6 +92,13 @@ public class Kind extends TextProperty {
 	}
 
 	@Override
+	public Kind deepCopy() {
+		Kind that = new Kind(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V4_0);
 	}

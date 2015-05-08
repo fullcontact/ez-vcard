@@ -96,6 +96,14 @@ public class Gender extends VCardProperty {
 	}
 
 	@Override
+	public Gender deepCopy() {
+		Gender that = new Gender(gender);
+		copyTo(that);
+		that.text = this.text;
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V4_0);
 	}

@@ -64,6 +64,13 @@ public class FormattedName extends TextProperty implements HasAltId {
 		super(name);
 	}
 
+	@Override
+	public FormattedName deepCopy() {
+		FormattedName that = new FormattedName(getValue());
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Gets the TYPE parameter.
 	 * <p>

@@ -741,7 +741,10 @@ public class XCardWriterTest {
 	}
 
 	private static class EmbeddedProperty extends VCardProperty {
-		//empty
+		@Override
+		public VCardProperty deepCopy() {
+			return this;
+		}
 	}
 
 	private static class EmbeddedScribe extends VCardPropertyScribe<EmbeddedProperty> {

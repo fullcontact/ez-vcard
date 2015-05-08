@@ -90,14 +90,23 @@ public class ValidationWarningsTest {
 	}
 
 	private class TestProperty1 extends VCardProperty {
-		//empty
+		@Override
+		public VCardProperty deepCopy() {
+			return new TestProperty1();
+		}
 	}
 
 	private class TestProperty2 extends VCardProperty {
-		//empty
+		@Override
+		public VCardProperty deepCopy() {
+			return new TestProperty1();
+		}
 	}
 
 	private class TestProperty3 extends VCardProperty {
-		//empty
+		@Override
+		public VCardProperty deepCopy() {
+			return new TestProperty1();
+		}
 	}
 }

@@ -68,6 +68,13 @@ public class SourceDisplayText extends TextProperty {
 	}
 
 	@Override
+	public SourceDisplayText deepCopy() {
+		SourceDisplayText that = new SourceDisplayText(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V3_0);
 	}

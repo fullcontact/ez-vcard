@@ -310,6 +310,9 @@ public class StreamWriterTest {
 	}
 
 	private class TestProperty extends VCardProperty {
-		//empty
+		@Override
+		public VCardProperty deepCopy() {
+			return this;
+		}
 	}
 }

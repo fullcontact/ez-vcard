@@ -64,6 +64,13 @@ public class Url extends UriProperty implements HasAltId {
 		super(url);
 	}
 
+	@Override
+	public Url deepCopy() {
+		Url that = new Url(getValue());
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Gets the MEDIATYPE parameter.
 	 * <p>

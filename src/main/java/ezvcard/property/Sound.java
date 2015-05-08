@@ -98,6 +98,13 @@ public class Sound extends BinaryProperty<SoundType> {
 		super(url, type);
 	}
 
+	@Override
+	public Sound deepCopy() {
+		Sound that = new Sound(getUrl(), getContentType());
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates a sound property.
 	 * @param data the binary data of the sound file

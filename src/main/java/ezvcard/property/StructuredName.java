@@ -69,6 +69,18 @@ public class StructuredName extends VCardProperty implements HasAltId {
 	private List<String> prefixes = new ArrayList<String>();
 	private List<String> suffixes = new ArrayList<String>();
 
+	@Override
+	public StructuredName deepCopy() {
+		StructuredName that = new StructuredName();
+		copyTo(that);
+		that.family = this.family;
+		that.given = this.given;
+		that.additional = new ArrayList<String>(this.additional);
+		that.prefixes = new ArrayList<String>(this.prefixes);
+		that.suffixes = new ArrayList<String>(this.suffixes);
+		return that;
+	}
+
 	/**
 	 * Gets the family name (aka "last name").
 	 * @return the family name or null if not set

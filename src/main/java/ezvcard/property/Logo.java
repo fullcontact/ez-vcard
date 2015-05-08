@@ -98,6 +98,14 @@ public class Logo extends ImageProperty {
 		super(url, type);
 	}
 
+	private Logo() {}
+
+	@Override
+	public Logo deepCopy() {
+		Logo that = new Logo();
+		copyTo(that);
+		return that;
+	}
 	/**
 	 * Creates a logo property.
 	 * @param data the binary data of the logo

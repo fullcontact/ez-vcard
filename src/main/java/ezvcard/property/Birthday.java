@@ -106,6 +106,13 @@ public class Birthday extends DateOrTimeProperty {
 		super(date);
 	}
 
+	@Override
+	public Birthday deepCopy() {
+        Birthday that = new Birthday(this.getDate());
+		copyTo(that);
+		return that;
+    }
+
 	/**
 	 * Creates a birthday property.
 	 * @param date the birthday

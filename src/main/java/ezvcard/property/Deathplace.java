@@ -97,6 +97,13 @@ public class Deathplace extends PlaceProperty {
 		super();
 	}
 
+	@Override
+	public Deathplace deepCopy() {
+		Deathplace that = new Deathplace();
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates a new deathplace property.
 	 * @param latitude the latitude coordinate of the place

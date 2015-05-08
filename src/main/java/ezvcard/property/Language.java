@@ -75,6 +75,13 @@ public class Language extends TextProperty implements HasAltId {
 	}
 
 	@Override
+	public Language deepCopy() {
+		Language that = new Language(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V4_0);
 	}

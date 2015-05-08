@@ -1,5 +1,8 @@
 package ezvcard.property;
 
 public class CannotParseProperty extends VCardProperty {
-	//empty
+	@Override
+	public VCardProperty deepCopy() {
+		return new CannotParseProperty();
+	}
 }

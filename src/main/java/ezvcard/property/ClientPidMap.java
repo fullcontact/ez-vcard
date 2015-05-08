@@ -104,6 +104,13 @@ public class ClientPidMap extends VCardProperty {
 		this.uri = uri;
 	}
 
+	@Override
+	public ClientPidMap deepCopy() {
+		ClientPidMap that = new ClientPidMap(pid, uri);
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Generates a CLIENTPIDMAP type that contains a random UID URI.
 	 * @param pid the PID

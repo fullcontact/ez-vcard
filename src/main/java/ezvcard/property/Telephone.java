@@ -77,6 +77,15 @@ public class Telephone extends VCardProperty implements HasAltId {
 	private String text;
 	private TelUri uri;
 
+	@Override
+	public Telephone deepCopy() {
+		Telephone that = new Telephone(text);
+		copyTo(that);
+		that.text = this.text;
+		that.uri = this.uri;
+		return that;
+	}
+
 	/**
 	 * Creates a telephone property.
 	 * @param text the telephone number (e.g. "(123) 555-6789")

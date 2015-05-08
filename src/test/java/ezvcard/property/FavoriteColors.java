@@ -75,6 +75,14 @@ public class FavoriteColors extends VCardProperty {
 		}
 	}
 
+	@Override
+	public VCardProperty deepCopy() {
+		FavoriteColors that = new FavoriteColors();
+		copyTo(that);
+		that.colors = new ArrayList<String>(this.colors);
+		return that;
+	}
+
 	public static class FavoriteColorsScribe extends VCardPropertyScribe<FavoriteColors> {
 		public FavoriteColorsScribe() {
 			super(FavoriteColors.class, "X-FAV-COLORS");

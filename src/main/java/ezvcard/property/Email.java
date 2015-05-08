@@ -77,6 +77,13 @@ public class Email extends TextProperty implements HasAltId {
 		super(email);
 	}
 
+	@Override
+	public Email deepCopy() {
+		Email that = new Email(getValue());
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Gets all the TYPE parameters.
 	 * @return the TYPE parameters or empty set if there are none

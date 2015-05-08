@@ -367,16 +367,28 @@ public class VCardWriterTest {
 		}
 
 		class DateProperty extends VCardProperty {
-			//empty
+			@Override
+			public VCardProperty deepCopy() {
+				return this;
+			}
 		}
 		class DateTimeProperty extends VCardProperty {
-			//empty
+			@Override
+			public VCardProperty deepCopy() {
+				return this;
+			}
 		}
 		class TimeProperty extends VCardProperty {
-			//empty
+			@Override
+			public VCardProperty deepCopy() {
+				return this;
+			}
 		}
 		class DateAndOrTimeProperty extends VCardProperty {
-			//empty
+			@Override
+			public VCardProperty deepCopy() {
+				return this;
+			}
 		}
 
 		VCard vcard = new VCard();

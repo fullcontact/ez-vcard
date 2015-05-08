@@ -383,6 +383,11 @@ public class JCardWriterTest {
 		public TestProperty(JCardValue value) {
 			this.value = value;
 		}
+
+		@Override
+		public VCardProperty deepCopy() {
+			return new TestProperty(value);
+		}
 	}
 
 	private static class TestScribe extends VCardPropertyScribe<TestProperty> {

@@ -427,6 +427,11 @@ public class JCardReaderTest {
 		public TypeForTesting(JCardValue value) {
 			this.value = value;
 		}
+
+		@Override
+		public VCardProperty deepCopy() {
+			return new TypeForTesting(value);
+		}
 	}
 
 	private static class TypeForTestingScribe extends VCardPropertyScribe<TypeForTesting> {

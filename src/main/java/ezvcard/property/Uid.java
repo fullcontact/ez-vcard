@@ -68,6 +68,13 @@ public class Uid extends UriProperty {
 		super(uid);
 	}
 
+	@Override
+	public Uid deepCopy() {
+		Uid that = new Uid(getValue());
+		copyTo(that);
+		return that;
+	}
+
 	/**
 	 * Creates a UID property that contains a random UUID URI.
 	 * @return the property

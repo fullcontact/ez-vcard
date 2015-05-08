@@ -67,6 +67,13 @@ public class Profile extends TextProperty {
 	}
 
 	@Override
+	public Profile deepCopy() {
+		Profile that = new Profile();
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V3_0);
 	}

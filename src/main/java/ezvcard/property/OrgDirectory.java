@@ -69,6 +69,13 @@ public class OrgDirectory extends UriProperty implements HasAltId {
 	}
 
 	@Override
+	public OrgDirectory deepCopy() {
+		OrgDirectory that = new OrgDirectory(getValue());
+		copyTo(that);
+		return that;
+	}
+
+	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V4_0);
 	}

@@ -88,6 +88,14 @@ public class Label extends TextProperty {
 		super(label);
 	}
 
+
+	@Override
+	public Label deepCopy() {
+		Label that = new Label(getValue());
+		copyTo(that);
+		return that;
+	}
+
 	@Override
 	public Set<VCardVersion> _supportedVersions() {
 		return EnumSet.of(VCardVersion.V2_1, VCardVersion.V3_0);
