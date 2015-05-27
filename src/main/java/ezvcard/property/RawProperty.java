@@ -1,6 +1,8 @@
 package ezvcard.property;
 
 import ezvcard.VCardDataType;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 /*
  Copyright (c) 2012-2015, Michael Angstadt
@@ -36,6 +38,8 @@ import ezvcard.VCardDataType;
  * value.
  * @author Michael Angstadt
  */
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 public class RawProperty extends TextProperty {
 	private String propertyName;
 	private VCardDataType dataType;
