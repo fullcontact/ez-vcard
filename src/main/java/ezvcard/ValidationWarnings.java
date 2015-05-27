@@ -1,28 +1,25 @@
 package ezvcard;
 
-import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import ezvcard.property.VCardProperty;
 import ezvcard.util.ListMultimap;
 import ezvcard.util.StringUtils;
+
+import java.text.NumberFormat;
+import java.util.*;
+import java.util.Map.Entry;
 
 /*
  Copyright (c) 2012-2015, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -42,29 +39,29 @@ import ezvcard.util.StringUtils;
  * </p>
  * <p>
  * <b>Examples:</b>
- * 
+ *
  * <pre class="brush:java">
  * //validate a vCard object according to the rules of a specific version
  * ValidationWarnings warnings = vcard.validate(VCardVersion.V3_0);
- * 
+ *
  * //print all warnings to a string:
  * System.out.println(warnings.toString());
  * //sample output:
  * //W01: A FormattedName property is required for vCard versions 3.0 and 4.0.
  * //[Gender] | W02: Property is not supported in this vCard version.  Supported versions are: [4.0]
- * 
+ *
  * //iterate over the warnings
  * for (Map.Entry&lt;VCardProperty, List&lt;Warning&gt;&gt; entry : warnings) {
  * 	//the property that caused the warning(s)
  * 	VCardProperty property = entry.getKey();
- * 
+ *
  * 	//the list of warnings that belong to this property
  * 	List&lt;Warning&gt; propWarnings = entry.getValue();
- * 
+ *
  * 	if (property == null) {
  * 		//it's a warning about the vCard as a whole
  * 	}
- * 
+ *
  * 	//each warning message has a numeric code
  * 	//this allows you to programmatically respond to specific warning messages
  * 	List&lt;Warning&gt; propWarnings = entry.getValue();
@@ -73,11 +70,11 @@ import ezvcard.util.StringUtils;
  * 		System.out.printkn(&quot;Message: &quot; + w.getMessage());
  * 	}
  * }
- * 
+ *
  * //you can also get the warnings of specific property classes
  * List&lt;Warnings&gt; telWarnings = warnings.getByProperty(Telephone.class);
  * </pre>
- * 
+ *
  * </p>
  * @author Michael Angstadt
  * @see VCard#validate
@@ -147,7 +144,7 @@ public class ValidationWarnings implements Iterable<Map.Entry<VCardProperty, Lis
 	 * Outputs all validation warnings as a newline-delimited string. For
 	 * example:
 	 * </p>
-	 * 
+	 *
 	 * <pre>
 	 * W01: A FormattedName property is required for vCard versions 3.0 and 4.0.
 	 * [Gender] | W02: Property is not supported in this vCard version.  Supported versions are: [4.0]

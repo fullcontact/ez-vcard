@@ -3,7 +3,7 @@
 	<groupId>com.googlecode.ez-vcard</groupId>
 	<artifactId>ez-vcard</artifactId>
 	<packaging>bundle</packaging> <!-- "bundle" used for OSGi support -->
-	<version>0.9.7-SNAPSHOT</version>
+	<version>0.9.8-fc</version>
 	<name>ez-vcard</name>
 	<url>http://code.google.com/p/ez-vcard</url>
 	<inceptionYear>2012</inceptionYear>
@@ -116,7 +116,7 @@
 					<include>ez-vcard.properties</include>
 				</includes>
 			</resource>
-			
+
 			<!--
 			Apparently, the "eclipse:eclipse" goal doesn't like the above <resource> definitions, so use the one below when running this goal
 			<resource>
@@ -138,7 +138,7 @@
 						Otherwise, it will copy the unfiltered versions in "src/main/resources" to the JAR.
 						-->
 						<Include-Resource>{maven-resources}, {ez-vcard.properties=target/classes/ez-vcard.properties}</Include-Resource>
-						
+
 						<!-- Define optional dependencies -->
 						<Import-Package>
 							com.fasterxml.jackson.*;resolution:=optional,
@@ -242,7 +242,7 @@
 					</execution>
 				</executions>
 			</plugin>
-			
+
 			<!--
 			FindBugs plugin
 			To run: mvn findbugs:findbugs
@@ -268,7 +268,7 @@
 				</configuration>
 			</plugin>
 
-			<!-- 
+			<!--
 			Mutation Testing
 			To run: mvn pitest:mutationCoverage
 			-->
