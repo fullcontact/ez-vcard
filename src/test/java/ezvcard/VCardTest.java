@@ -1,36 +1,25 @@
 package ezvcard;
 
-import static ezvcard.util.TestUtils.assertValidate;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-
+import ezvcard.property.*;
 import org.junit.Test;
 
-import ezvcard.property.HasAltId;
-import ezvcard.property.Note;
-import ezvcard.property.RawProperty;
-import ezvcard.property.Revision;
-import ezvcard.property.StructuredName;
-import ezvcard.property.VCardProperty;
+import java.util.*;
+
+import static ezvcard.util.TestUtils.assertValidate;
+import static org.junit.Assert.*;
 
 /*
  Copyright (c) 2012-2015, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -44,7 +33,7 @@ import ezvcard.property.VCardProperty;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -52,6 +41,21 @@ import ezvcard.property.VCardProperty;
  * @author Michael Angstadt
  */
 public class VCardTest {
+
+	@Test
+	public void equalsAndCopyConstructor() {
+		VCard vcard = new VCard();
+		Note note = new Note("A note.");
+		vcard.addNote(note);
+
+		VCard vcard2 = new VCard();
+
+		assertNotEquals(vcard2, vcard);
+
+		VCard vcard3 = new VCard(VCardVersion.V3_0, vcard.getPropertyMap());
+		assertEquals(vcard3, vcard);
+	}
+
 	@Test
 	public void getAllTypes() {
 		VCard vcard = new VCard();

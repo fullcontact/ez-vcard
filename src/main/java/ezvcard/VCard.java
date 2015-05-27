@@ -1,91 +1,27 @@
 package ezvcard;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import ezvcard.io.text.VCardWriter;
+import ezvcard.parameter.*;
+import ezvcard.property.*;
+import ezvcard.util.ListMultimap;
+import lombok.*;
 
 import javax.xml.transform.TransformerException;
-
-import ezvcard.io.text.VCardWriter;
-import ezvcard.parameter.EmailType;
-import ezvcard.parameter.TelephoneType;
-import ezvcard.parameter.VCardParameters;
-import ezvcard.property.Address;
-import ezvcard.property.Agent;
-import ezvcard.property.Anniversary;
-import ezvcard.property.Birthday;
-import ezvcard.property.Birthplace;
-import ezvcard.property.CalendarRequestUri;
-import ezvcard.property.CalendarUri;
-import ezvcard.property.Categories;
-import ezvcard.property.Classification;
-import ezvcard.property.ClientPidMap;
-import ezvcard.property.Deathdate;
-import ezvcard.property.Deathplace;
-import ezvcard.property.Email;
-import ezvcard.property.Expertise;
-import ezvcard.property.FormattedName;
-import ezvcard.property.FreeBusyUrl;
-import ezvcard.property.Gender;
-import ezvcard.property.Geo;
-import ezvcard.property.HasAltId;
-import ezvcard.property.Hobby;
-import ezvcard.property.Impp;
-import ezvcard.property.Interest;
-import ezvcard.property.Key;
-import ezvcard.property.Kind;
-import ezvcard.property.Label;
-import ezvcard.property.Language;
-import ezvcard.property.Logo;
-import ezvcard.property.Mailer;
-import ezvcard.property.Member;
-import ezvcard.property.Nickname;
-import ezvcard.property.Note;
-import ezvcard.property.OrgDirectory;
-import ezvcard.property.Organization;
-import ezvcard.property.Photo;
-import ezvcard.property.ProductId;
-import ezvcard.property.Profile;
-import ezvcard.property.RawProperty;
-import ezvcard.property.Related;
-import ezvcard.property.Revision;
-import ezvcard.property.Role;
-import ezvcard.property.SortString;
-import ezvcard.property.Sound;
-import ezvcard.property.Source;
-import ezvcard.property.SourceDisplayText;
-import ezvcard.property.StructuredName;
-import ezvcard.property.Telephone;
-import ezvcard.property.Timezone;
-import ezvcard.property.Title;
-import ezvcard.property.Uid;
-import ezvcard.property.Url;
-import ezvcard.property.VCardProperty;
-import ezvcard.property.Xml;
-import ezvcard.util.ListMultimap;
+import java.io.*;
+import java.util.*;
 
 /*
  Copyright (c) 2012-2015, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -99,7 +35,7 @@ import ezvcard.util.ListMultimap;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -107,10 +43,21 @@ import ezvcard.util.ListMultimap;
  * Represents a vCard.
  * @author Michael Angstadt
  */
+@EqualsAndHashCode
+@ToString
+@AllArgsConstructor
 public class VCard implements Iterable<VCardProperty> {
 	private VCardVersion version = VCardVersion.V3_0;
 
-	private final ListMultimap<Class<? extends VCardProperty>, VCardProperty> properties = new ListMultimap<Class<? extends VCardProperty>, VCardProperty>();
+	private final ListMultimap<Class<? extends VCardProperty>, VCardProperty> properties;
+
+	public VCard() {
+		properties = new ListMultimap<Class<? extends VCardProperty>, VCardProperty>();
+	}
+
+	public ListMultimap<Class<? extends VCardProperty>, VCardProperty> getPropertyMap() {
+		return properties;
+	}
 
 	/**
 	 * <p>
@@ -489,9 +436,9 @@ public class VCard implements Iterable<VCardProperty> {
 	/**
 	 * Gets the members of the group. Only valid if the KIND property is set to
 	 * "group".
-	 * 
+	 *
 	 * <p>
-	 * 
+	 *
 	 * <pre class="brush:java">
 	 * VCard vcard = ...
 	 * Kind kind = vcard.getKind();
@@ -501,9 +448,9 @@ public class VCard implements Iterable<VCardProperty> {
 	 *   }
 	 * }
 	 * </pre>
-	 * 
+	 *
 	 * </p>
-	 * 
+	 *
 	 * <p>
 	 * <b>Property name:</b> {@code MEMBER}
 	 * </p>
@@ -519,17 +466,17 @@ public class VCard implements Iterable<VCardProperty> {
 	/**
 	 * Adds a member to the group. Only valid if the KIND property is set to
 	 * "group".
-	 * 
+	 *
 	 * <p>
-	 * 
+	 *
 	 * <pre class="brush:java">
 	 * VCard vcard = new VCard();
 	 * vcard.setKind(Kind.group());
 	 * vcard.addMember(...);
 	 * </pre>
-	 * 
+	 *
 	 * </p>
-	 * 
+	 *
 	 * <p>
 	 * <b>Property name:</b> {@code MEMBER}
 	 * </p>
@@ -922,7 +869,7 @@ public class VCard implements Iterable<VCardProperty> {
 	 * Not going to add this method because if they are defining alternative
 	 * representations, then they'll probably want to set parameters on each one
 	 * (like "LANGUAGE").
-	 * 
+	 *
 	 * public void addFormattedName(String... altRepresentations) { }
 	 */
 
