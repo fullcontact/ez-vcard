@@ -111,6 +111,7 @@ public class VCardRawWriter implements Closeable, Flushable {
 
 	private final FoldedLineWriter writer;
 	private boolean caretEncodingEnabled = false;
+	private boolean propertyValidationEnabled = true;
 	private ParameterValueChangedListener parameterValueChangedListener;
 	private VCardVersion version;
 
@@ -273,6 +274,23 @@ public class VCardRawWriter implements Closeable, Flushable {
 	}
 
 	/**
+	 * Whether property names are checked in strict adherence with the spec.
+	 */
+	public boolean isPropertyValidationEnabled() {
+		return propertyValidationEnabled;
+	}
+
+	/**
+	 * Sets whether property names are checked in strict adherence with the spec, defaults
+	 * to on. Turning this off may be useful when dealing with regrettably lenient services,
+	 * e.g. iCloud, which calls anything before the first colon and after the
+	 * first period (group) as the property name.
+	 */
+	public void setPropertyValidationEnabled(boolean propertyValidationEnabled) {
+		this.propertyValidationEnabled = propertyValidationEnabled;
+	}
+
+	/**
 	 * Writes a property marking the beginning of a component (in other words,
 	 * writes a "BEGIN:NAME" property).
 	 * @param componentName the component name (e.g. "VCARD")
@@ -331,7 +349,7 @@ public class VCardRawWriter implements Closeable, Flushable {
 		}
 
 		//validate the property name
-		if (!propertyNameRegex.matcher(propertyName).matches()) {
+		if (propertyValidationEnabled && !propertyNameRegex.matcher(propertyName).matches()) {
 			throw new IllegalArgumentException("Property name contains invalid characters.  Valid characters are letters, numbers, and hyphens: " + propertyName);
 		}
 
