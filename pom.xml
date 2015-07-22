@@ -3,7 +3,7 @@
 	<groupId>com.googlecode.ez-vcard</groupId>
 	<artifactId>ez-vcard</artifactId>
 	<packaging>bundle</packaging> <!-- "bundle" used for OSGi support -->
-	<version>0.9.10-fc</version>
+	<version>0.9.11-fc</version>
 	<name>ez-vcard</name>
 	<url>http://code.google.com/p/ez-vcard</url>
 	<inceptionYear>2012</inceptionYear>
@@ -159,8 +159,9 @@
 			</plugin>
 
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>2.3.2</version>
+				<version>3.1</version>
 				<configuration>
 					<encoding>UTF-8</encoding>
 					<compilerVersion>${java.version}</compilerVersion>
