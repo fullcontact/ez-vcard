@@ -11,13 +11,13 @@ import java.util.regex.Pattern;
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -46,10 +46,10 @@ import java.util.regex.Pattern;
  * This class is immutable. Use the {@link Builder} object to construct a new
  * instance, or the {@link #parse} method to parse a tel URI string.
  * </p>
- * 
+ *
  * <p>
  * <b>Examples:</b>
- * 
+ *
  * <pre class="brush:java">
  * TelUri uri = new TelUri.Builder(&quot;+1-212-555-0101&quot;).extension(&quot;123&quot;).build();
  * TelUri uri = TelUri.parse(&quot;tel:+1-212-555-0101;ext=123&quot;);
@@ -89,11 +89,6 @@ public final class TelUri {
 	 */
 	private static final Pattern labelTextPattern = Pattern.compile("(?i)^[-a-z0-9]+$");
 
-	/**
-	 * Regular expression for parsing tel URIs.
-	 */
-	private static final Pattern uriPattern = Pattern.compile("(?i)^tel:(.*?)(;(.*))?$");
-
 	private static final String PARAM_EXTENSION = "ext";
 	private static final String PARAM_ISDN_SUBADDRESS = "isub";
 	private static final String PARAM_PHONE_CONTEXT = "phone-context";
@@ -119,19 +114,18 @@ public final class TelUri {
 	 * @throws IllegalArgumentException if the URI cannot be parsed
 	 */
 	public static TelUri parse(String uri) {
-		Matcher m = uriPattern.matcher(uri);
-		if (!m.find()) {
-			throw new IllegalArgumentException("Invalid tel URI: " + uri);
+		if (uri.length() < 4 || !uri.substring(0, 4).toLowerCase().equals("tel:")) {
+			throw new IllegalArgumentException("Invalid tel URI: '" + uri + "'");
 		}
 
+		// uri:number;stuff=things;more=props
+		String[] parts = uri.substring(4).split(";");
+
 		Builder builder = new Builder();
-		builder.number = m.group(1);
-
-		String paramsStr = m.group(3);
-		if (paramsStr != null) {
-			String paramsArray[] = paramsStr.split(";");
-
-			for (String param : paramsArray) {
+		builder.number = parts[0];
+		if (parts.length > 1) {
+			for (int i = 1; i < parts.length; i++) {
+				String param = parts[i];
 				String paramSplit[] = param.split("=", 2);
 				String paramName = paramSplit[0];
 				String paramValue = paramSplit.length > 1 ? decodeParamValue(paramSplit[1]) : "";
