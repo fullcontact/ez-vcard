@@ -2,6 +2,7 @@ package ezvcard.io.json;
 
 import static ezvcard.util.IOUtils.utf8Reader;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -62,12 +63,16 @@ import ezvcard.property.VCardProperty;
  * 
  * <pre class="brush:java">
  * File file = new File("vcards.json");
- * JCardReader jcardReader = new JCardReader(file);
- * VCard vcard;
- * while ((vcard = jcardReader.readNext()) != null){
- *   ...
+ * JCardReader reader = null;
+ * try {
+ *   reader = new JCardReader(file);
+ *   VCard vcard;
+ *   while ((vcard = reader.readNext()) != null){
+ *     ...
+ *   }
+ * } finally {
+ *   if (reader != null) reader.close();
  * }
- * jcardReader.close();
  * </pre>
  * 
  * </p>
@@ -78,33 +83,29 @@ public class JCardReader extends StreamReader {
 	private final JCardRawReader reader;
 
 	/**
-	 * Creates a jCard reader.
-	 * @param json the JSON string
+	 * @param json the JSON string to read from
 	 */
 	public JCardReader(String json) {
 		this(new StringReader(json));
 	}
 
 	/**
-	 * Creates a jCard reader.
-	 * @param in the input stream to read the vCards from
+	 * @param in the input stream to read from
 	 */
 	public JCardReader(InputStream in) {
 		this(utf8Reader(in));
 	}
 
 	/**
-	 * Creates a jCard reader.
-	 * @param file the file to read the vCards from
+	 * @param file the file to read from
 	 * @throws FileNotFoundException if the file doesn't exist
 	 */
 	public JCardReader(File file) throws FileNotFoundException {
-		this(utf8Reader(file));
+		this(new BufferedReader(utf8Reader(file)));
 	}
 
 	/**
-	 * Creates a jCard reader.
-	 * @param reader the reader to read the vCards from
+	 * @param reader the reader to read from
 	 */
 	public JCardReader(Reader reader) {
 		this.reader = new JCardRawReader(reader);

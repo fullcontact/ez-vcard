@@ -48,6 +48,9 @@ import ezvcard.parameter.VCardParameters;
 /**
  * Writes data to an vCard data stream.
  * @author Michael Angstadt
+ * @see <a href="http://www.imc.org/pdi/vcard-21.rtf">vCard 2.1</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426">RFC 2426 (3.0)</a>
+ * @see <a href="http://tools.ietf.org/html/rfc6350">RFC 6350 (4.0)</a>
  */
 public class VCardRawWriter implements Closeable, Flushable {
 	/**
@@ -62,8 +65,10 @@ public class VCardRawWriter implements Closeable, Flushable {
 	private static final Pattern newlineRegex = Pattern.compile("\\r\\n|\\r|\\n");
 
 	/**
-	 * Regular expression used to determine if a property name contains any
-	 * invalid characters.
+	 * List of characters which would break the syntax of the vCard if used
+	 * inside a group or property name. The list of characters permitted by the
+	 * specification is much more strict, but the goal here is to be as lenient
+	 * as possible.
 	 */
 	private static final Pattern propertyNameRegex = Pattern.compile("(?i)[-a-z0-9]+");
 
@@ -116,8 +121,7 @@ public class VCardRawWriter implements Closeable, Flushable {
 	private VCardVersion version;
 
 	/**
-	 * Creates a vCard raw writer.
-	 * @param writer the writer to the data stream
+	 * @param writer the writer to wrap
 	 * @param version the vCard version to adhere to
 	 */
 	public VCardRawWriter(Writer writer, VCardVersion version) {
@@ -344,39 +348,48 @@ public class VCardRawWriter implements Closeable, Flushable {
 	 */
 	public void writeProperty(String group, String propertyName, VCardParameters parameters, String value) throws IOException {
 		//validate the group name
-		if (group != null && !propertyNameRegex.matcher(group).matches()) {
-			throw new IllegalArgumentException("Group contains invalid characters.  Valid characters are letters, numbers, and hyphens: " + group);
+		if (group != null) {
+			if (!isValidGroupName(group)) {
+				throw new IllegalArgumentException("Property \"" + propertyName + "\" has its group name set to \"" + group + "\".  This group name contains one or more invalid characters.  The following characters are not permitted: .;:\\n\\r");
+			}
+			if (beginsWithWhitespace(group)) {
+				throw new IllegalArgumentException("Property \"" + propertyName + "\" has its group name set to \"" + group + "\".  This group name begins with one or more whitespace characters, which is not permitted.");
+			}
 		}
 
 		//validate the property name
-		if (propertyValidationEnabled && !propertyNameRegex.matcher(propertyName).matches()) {
-			throw new IllegalArgumentException("Property name contains invalid characters.  Valid characters are letters, numbers, and hyphens: " + propertyName);
+		if (propertyValidationEnabled && !isValidPropertyName(propertyName)) {
+			throw new IllegalArgumentException("Property name \"" + propertyName + "\" contains one or more invalid characters.  The following characters are not permitted: .;:\\n\\r");
+		}
+		if (propertyValidationEnabled && beginsWithWhitespace(propertyName)) {
+			throw new IllegalArgumentException("Property name \"" + propertyName + "\" begins with one or more whitespace characters, which is not permitted.");
 		}
 
 		value = sanitizeValue(parameters, value);
 
-		//determine if the property value must be encoded in quoted printable
-		//and determine the charset to use when encoding to quoted-printable
-		boolean quotedPrintable = (parameters.getEncoding() == Encoding.QUOTED_PRINTABLE);
-		Charset charset = null;
-		if (quotedPrintable) {
+		/*
+		 * Determine if the property value must be encoded in quoted printable
+		 * encoding. If so, then determine what charset to use for the encoding.
+		 */
+		boolean useQuotedPrintable = (parameters.getEncoding() == Encoding.QUOTED_PRINTABLE);
+		Charset quotedPrintableCharset = null;
+		if (useQuotedPrintable) {
 			String charsetParam = parameters.getCharset();
 			if (charsetParam == null) {
-				charset = Charset.forName("UTF-8");
+				quotedPrintableCharset = Charset.forName("UTF-8");
 			} else {
 				try {
-					charset = Charset.forName(charsetParam);
+					quotedPrintableCharset = Charset.forName(charsetParam);
 				} catch (Throwable t) {
-					charset = Charset.forName("UTF-8");
+					quotedPrintableCharset = Charset.forName("UTF-8");
 				}
 			}
-			parameters.setCharset(charset.name());
+			parameters.setCharset(quotedPrintableCharset.name());
 		}
 
 		//write the group
 		if (group != null) {
-			writer.append(group);
-			writer.append('.');
+			writer.append(group).append('.');
 		}
 
 		//write the property name
@@ -415,12 +428,8 @@ public class VCardRawWriter implements Closeable, Flushable {
 				}
 
 				parameterValue = sanitizeParameterValue(parameterValue, parameterName, propertyName);
-
-				//surround with double quotes if contains special chars
-				if (quoteMeRegex.matcher(parameterValue).matches()) {
-					writer.append('"');
-					writer.append(parameterValue);
-					writer.append('"');
+				if (containsSpecialChars(parameterValue)) {
+					writer.append('"').append(parameterValue).append('"');
 				} else {
 					writer.append(parameterValue);
 				}
@@ -430,13 +439,35 @@ public class VCardRawWriter implements Closeable, Flushable {
 		}
 
 		writer.append(':');
-		writer.append(value, quotedPrintable, charset);
+		writer.append(value, useQuotedPrintable, quotedPrintableCharset);
 		writer.append(writer.getNewline());
+	}
+
+	private boolean isValidGroupName(String group) {
+		return isValidPropertyName(group);
+	}
+
+	private boolean isValidPropertyName(String name) {
+		for (int i = 0; i < invalidPropertyGroupNameCharacters.length(); i++) {
+			char c = invalidPropertyGroupNameCharacters.charAt(i);
+			if (name.indexOf(c) >= 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private boolean beginsWithWhitespace(String string) {
+		if (string.length() == 0) {
+			return false;
+		}
+		char first = string.charAt(0);
+		return (first == ' ' || first == '\t');
 	}
 
 	/**
 	 * Sanitizes a property value for safe inclusion in a vCard.
-	 * @param parameters the parameters
+	 * @param parameters the property's parameters
 	 * @param value the value to sanitize
 	 * @return the sanitized value
 	 */
@@ -445,9 +476,12 @@ public class VCardRawWriter implements Closeable, Flushable {
 			return "";
 		}
 
+		/*
+		 * 2.1 does not support the "\n" escape sequence (see "Delimiters"
+		 * sub-section in section 2 of the specs) so encode the value in
+		 * quoted-printable encoding if any newline characters exist
+		 */
 		if (version == VCardVersion.V2_1 && containsNewlines(value)) {
-			//2.1 does not support the "\n" escape sequence (see "Delimiters" sub-section in section 2 of the specs)
-			//so, encode the value in quoted-printable if any newline characters exist
 			parameters.setEncoding(Encoding.QUOTED_PRINTABLE);
 			return value;
 		}
@@ -467,8 +501,6 @@ public class VCardRawWriter implements Closeable, Flushable {
 		String modifiedValue = null;
 		boolean valueChanged = false;
 
-		//Note: String reference comparisons ("==") are used because the Pattern class returns the same instance if the String wasn't changed
-
 		switch (version) {
 		case V2_1:
 			//remove invalid characters
@@ -478,7 +510,7 @@ public class VCardRawWriter implements Closeable, Flushable {
 			modifiedValue = newlineRegex.matcher(modifiedValue).replaceAll(" ");
 
 			//check to see if value was changed
-			valueChanged = (parameterValue != modifiedValue);
+			valueChanged = !parameterValue.equals(modifiedValue);
 
 			//escape backslashes
 			modifiedValue = modifiedValue.replace("\\", "\\\\");
@@ -493,7 +525,7 @@ public class VCardRawWriter implements Closeable, Flushable {
 			modifiedValue = removeInvalidParameterValueChars(parameterValue);
 
 			if (caretEncodingEnabled) {
-				valueChanged = (modifiedValue != parameterValue);
+				valueChanged = !modifiedValue.equals(parameterValue);
 
 				//apply caret encoding
 				modifiedValue = applyCaretEncoding(modifiedValue);
@@ -504,7 +536,7 @@ public class VCardRawWriter implements Closeable, Flushable {
 				//replace newlines with spaces
 				modifiedValue = newlineRegex.matcher(modifiedValue).replaceAll(" ");
 
-				valueChanged = (modifiedValue != parameterValue);
+				valueChanged = !modifiedValue.equals(parameterValue);
 			}
 
 			break;
@@ -514,7 +546,7 @@ public class VCardRawWriter implements Closeable, Flushable {
 			modifiedValue = removeInvalidParameterValueChars(parameterValue);
 
 			if (caretEncodingEnabled) {
-				valueChanged = (modifiedValue != parameterValue);
+				valueChanged = !modifiedValue.equals(parameterValue);
 
 				//apply caret encoding
 				modifiedValue = applyCaretEncoding(modifiedValue);
@@ -522,7 +554,7 @@ public class VCardRawWriter implements Closeable, Flushable {
 				//replace double quotes with single quotes
 				modifiedValue = modifiedValue.replace('"', '\'');
 
-				valueChanged = (modifiedValue != parameterValue);
+				valueChanged = !modifiedValue.equals(parameterValue);
 
 				//backslash-escape newlines (for the "LABEL" parameter)
 				modifiedValue = newlineRegex.matcher(modifiedValue).replaceAll("\\\\\\n");
@@ -609,6 +641,15 @@ public class VCardRawWriter implements Closeable, Flushable {
 	 */
 	private boolean containsNewlines(String text) {
 		return newlineRegex.matcher(text).find();
+	}
+
+	/**
+	 * Determines if a parameter value contains special characters.
+	 * @param parameterValue the parameter value
+	 * @return true if it contains special characters, false if not
+	 */
+	private boolean containsSpecialChars(String parameterValue) {
+		return quoteMeRegex.matcher(parameterValue).matches();
 	}
 
 	/**

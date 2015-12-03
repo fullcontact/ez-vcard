@@ -10,12 +10,15 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.xml.namespace.QName;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
+import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMResult;
@@ -44,7 +47,6 @@ import ezvcard.parameter.VCardParameters;
 import ezvcard.property.VCardProperty;
 import ezvcard.property.Xml;
 import ezvcard.util.ListMultimap;
-import ezvcard.util.StringUtils;
 import ezvcard.util.XmlUtils;
 
 /*
@@ -86,19 +88,25 @@ import ezvcard.util.XmlUtils;
  * <pre class="brush:java">
  * VCard vcard1 = ...
  * VCard vcard2 = ...
- * 
  * File file = new File("vcards.xml");
- * XCardWriter xcardWriter = new XCardWriter(file);
- * xcardWriter.write(vcard1);
- * xcardWriter.write(vcard2);
- * xcardWriter.close();
+ * XCardWriter writer = null;
+ * try {
+ *   writer = new XCardWriter(file);
+ *   writer.write(vcard1);
+ *   writer.write(vcard2);
+ * } finally {
+ *   if (writer != null) writer.close();
+ * }
  * </pre>
+ * 
+ * </p>
  * @author Michael Angstadt
  * @see <a href="http://tools.ietf.org/html/rfc6351">RFC 6351</a>
  */
 public class XCardWriter extends StreamWriter {
-	//how to use SAX to write XML: http://stackoverflow.com/questions/4898590/generating-xml-using-sax-and-java
-	private final VCardVersion targetVersion = VCardVersion.V4_0;
+	//How to use SAX to write XML: http://stackoverflow.com/q/4898590
+
+	private final VCardVersion targetVersion = VCardVersion.V4_0; //xCard only supports 4.0
 	private final Document DOC = XmlUtils.createDocument();
 
 	/**
@@ -122,78 +130,156 @@ public class XCardWriter extends StreamWriter {
 
 	private final Writer writer;
 	private final TransformerHandler handler;
-	private final String indent;
 	private final boolean vcardsElementExists;
-	private int level = 0;
-	private boolean textNodeJustPrinted = false, started = false;
+	private boolean started = false;
 
 	/**
-	 * Creates an xCard writer.
-	 * @param out the output stream to write the xCards to
+	 * @param out the output stream to write to (UTF-8 encoding will be used)
 	 */
 	public XCardWriter(OutputStream out) {
-		this(utf8Writer(out));
+		this(out, -1);
 	}
 
 	/**
-	 * Creates an xCard writer.
-	 * @param out the output stream to write the xCards to
-	 * @param indent the indentation string to use for pretty printing (e.g.
-	 * "\t") or null not to pretty print
+	 * @param out the output stream to write to (UTF-8 encoding will be used)
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
 	 */
-	public XCardWriter(OutputStream out, String indent) {
-		this(utf8Writer(out), indent);
+	public XCardWriter(OutputStream out, int indent) {
+		this(out, indent, null);
 	}
 
 	/**
-	 * Creates an xCard writer.
-	 * @param file the file to write the xCards to
+	 * @param out the output stream to write to (UTF-8 encoding will be used)
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
+	 * @param xmlVersion the XML version to use (defaults to "1.0") (Note: Many
+	 * JDKs only support 1.0 natively. For XML 1.1 support, add a JAXP library
+	 * like <a href=
+	 * "http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22xalan%22%20AND%20a%3A%22xalan%22"
+	 * >xalan</a> to your project)
+	 */
+	public XCardWriter(OutputStream out, int indent, String xmlVersion) {
+		this(out, createOutputProperties(indent, xmlVersion));
+	}
+
+	/**
+	 * @param out the output stream to write to (UTF-8 encoding will be used)
+	 * @param outputProperties properties to assign to the JAXP
+	 * transformer (see {@link Transformer#setOutputProperty})
+	 * >xalan</a> to your project)
+	 */
+	public XCardWriter(OutputStream out, Map<String, String> outputProperties) {
+		this(utf8Writer(out), outputProperties);
+	}
+
+	/**
+	 * @param file the file to write to (UTF-8 encoding will be used)
 	 * @throws IOException if there's a problem opening the file
 	 */
 	public XCardWriter(File file) throws IOException {
-		this(utf8Writer(file));
+		this(file, -1);
 	}
 
 	/**
-	 * Creates an xCard writer.
-	 * @param file the file to write the xCards to
-	 * @param indent the indentation string to use for pretty printing (e.g.
-	 * "\t") or null not to pretty print
+	 * @param file the file to write to (UTF-8 encoding will be used)
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
 	 * @throws IOException if there's a problem opening the file
 	 */
-	public XCardWriter(File file, String indent) throws IOException {
-		this(utf8Writer(file), indent);
+	public XCardWriter(File file, int indent) throws IOException {
+		this(file, indent, null);
 	}
 
 	/**
-	 * Creates an xCard writer.
+	 * @param file the file to write to (UTF-8 encoding will be used)
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
+	 * @param xmlVersion the XML version to use (defaults to "1.0") (Note: Many
+	 * JDKs only support 1.0 natively. For XML 1.1 support, add a JAXP library
+	 * like <a href=
+	 * "http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22xalan%22%20AND%20a%3A%22xalan%22"
+	 * >xalan</a> to your project)
+	 * @throws IOException if there's a problem opening the file
+	 */
+	public XCardWriter(File file, int indent, String xmlVersion) throws IOException {
+		this(file, createOutputProperties(indent, xmlVersion));
+	}
+
+	/**
+	 * @param file the file to write to (UTF-8 encoding will be used)
+	 * @param outputProperties properties to assign to the JAXP
+	 * transformer (see {@link Transformer#setOutputProperty})
+	 * @throws IOException if there's a problem opening the file
+	 */
+	public XCardWriter(File file, Map<String, String> outputProperties) throws IOException {
+		this(utf8Writer(file), outputProperties);
+	}
+
+	/**
 	 * @param writer the writer to write to
 	 */
 	public XCardWriter(Writer writer) {
-		this(writer, null);
+		this(writer, -1);
 	}
 
 	/**
-	 * Creates an xCard writer.
 	 * @param writer the writer to write to
-	 * @param indent the indentation string to use for pretty printing (e.g.
-	 * "\t") or null not to pretty print
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
 	 */
-	public XCardWriter(Writer writer, String indent) {
+	public XCardWriter(Writer writer, int indent) {
 		this(writer, indent, null);
 	}
 
 	/**
-	 * Creates an xCard writer.
+	 * @param writer the writer to write to
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
+	 * @param xmlVersion the XML version to use (defaults to "1.0") (Note: Many
+	 * JDKs only support 1.0 natively. For XML 1.1 support, add a JAXP library
+	 * like <a href=
+	 * "http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22xalan%22%20AND%20a%3A%22xalan%22"
+	 * >xalan</a> to your project)
+	 */
+	public XCardWriter(Writer writer, int indent, String xmlVersion) {
+		this(writer, createOutputProperties(indent, xmlVersion));
+	}
+
+	/**
+	 * @param writer the writer to write to
+	 * @param outputProperties properties to assign to the JAXP
+	 * transformer (see {@link Transformer#setOutputProperty})
+	 */
+	public XCardWriter(Writer writer, Map<String, String> outputProperties) {
+		this(writer, null, outputProperties);
+	}
+
+	/**
 	 * @param parent the DOM node to add child elements to
 	 */
 	public XCardWriter(Node parent) {
-		this(null, null, parent);
+		this(null, parent, Collections.<String, String> emptyMap());
 	}
 
-	private XCardWriter(Writer writer, String indent, Node parent) {
+	private static Map<String, String> createOutputProperties(int indent, String xmlVersion) {
+		Map<String, String> properties = new HashMap<String, String>();
+		properties.put(OutputKeys.METHOD, "xml");
+
+		if (indent >= 0) {
+			properties.put(OutputKeys.INDENT, "yes");
+			properties.put("{http://xml.apache.org/xslt}indent-amount", indent + "");
+		}
+
+		if (xmlVersion != null) {
+			properties.put(OutputKeys.VERSION, xmlVersion);
+		}
+
+		return properties;
+	}
+
+	private XCardWriter(Writer writer, Node parent, Map<String, String> outputProperties) {
 		this.writer = writer;
-		this.indent = indent;
 
 		if (parent instanceof Document) {
 			Node root = parent.getFirstChild();
@@ -210,6 +296,18 @@ public class XCardWriter extends StreamWriter {
 			throw new RuntimeException(e);
 		}
 
+		Transformer transformer = handler.getTransformer();
+
+		/*
+		 * Using Transformer#setOutputProperties(Properties) doesn't work for
+		 * some reason for setting the number of indentation spaces.
+		 */
+		for (Map.Entry<String, String> entry : outputProperties.entrySet()) {
+			String key = entry.getKey();
+			String value = entry.getValue();
+			transformer.setOutputProperty(key, value);
+		}
+
 		Result result = (writer == null) ? new DOMResult(parent) : new StreamResult(writer);
 		handler.setResult(result);
 	}
@@ -223,8 +321,7 @@ public class XCardWriter extends StreamWriter {
 			return false;
 		}
 
-		QName vcards = XCardQNames.VCARDS;
-		return vcards.getNamespaceURI().equals(node.getNamespaceURI()) && vcards.getLocalPart().equals(node.getLocalName());
+		return XmlUtils.hasQName(node, XCardQNames.VCARDS);
 	}
 
 	@Override
@@ -236,7 +333,6 @@ public class XCardWriter extends StreamWriter {
 				if (!vcardsElementExists) {
 					//don't output a <vcards> element if the parent is a <vcards> element
 					start(VCARDS);
-					level++;
 				}
 
 				started = true;
@@ -248,7 +344,6 @@ public class XCardWriter extends StreamWriter {
 			}
 
 			start(VCARD);
-			level++;
 
 			for (Map.Entry<String, List<VCardProperty>> entry : propertiesByGroup) {
 				String groupName = entry.getKey();
@@ -257,7 +352,6 @@ public class XCardWriter extends StreamWriter {
 					attr.addAttribute(XCardQNames.NAMESPACE, "", "name", "", groupName);
 
 					start(GROUP, attr);
-					level++;
 				}
 
 				for (VCardProperty property : entry.getValue()) {
@@ -265,12 +359,10 @@ public class XCardWriter extends StreamWriter {
 				}
 
 				if (groupName != null) {
-					level--;
 					end(GROUP);
 				}
 			}
 
-			level--;
 			end(VCARD);
 		} catch (SAXException e) {
 			throw new IOException(e);
@@ -308,12 +400,10 @@ public class XCardWriter extends StreamWriter {
 				if (!vcardsElementExists) {
 					//don't output a <vcards> element if the parent is a <vcards> element
 					start(VCARDS);
-					level++;
 				}
 			}
 
 			if (!vcardsElementExists) {
-				level--;
 				end(VCARDS);
 			}
 			handler.endDocument();
@@ -353,12 +443,10 @@ public class XCardWriter extends StreamWriter {
 		}
 
 		start(propertyElement);
-		level++;
 
 		write(parameters);
 		write(propertyElement);
 
-		level--;
 		end(propertyElement);
 	}
 
@@ -372,14 +460,9 @@ public class XCardWriter extends StreamWriter {
 
 				if (element.hasChildNodes()) {
 					start(element);
-					level++;
-
 					write(element);
-
-					level--;
 					end(element);
 				} else {
-					//make childless elements appear as "<foo />" instead of "<foo></foo>"
 					childless(element);
 				}
 
@@ -400,12 +483,10 @@ public class XCardWriter extends StreamWriter {
 		}
 
 		start(PARAMETERS);
-		level++;
 
 		for (Map.Entry<String, List<String>> parameter : parameters) {
 			String parameterName = parameter.getKey().toLowerCase();
 			start(parameterName);
-			level++;
 
 			for (String parameterValue : parameter.getValue()) {
 				VCardDataType dataType = parameterDataTypes.get(parameterName);
@@ -416,27 +497,20 @@ public class XCardWriter extends StreamWriter {
 				end(dataTypeElementName);
 			}
 
-			level--;
 			end(parameterName);
 		}
 
-		level--;
 		end(PARAMETERS);
 	}
 
-	private void indent() throws SAXException {
-		if (indent == null) {
-			return;
-		}
-
-		//"\n" is hard-coded here because if the Windows "\r\n" is used, it will encode the "\r" character for XML ("&#13;")
-		String str = '\n' + StringUtils.repeat(indent, level);
-		handler.ignorableWhitespace(str.toCharArray(), 0, str.length());
-	}
-
+	/**
+	 * Makes an childless element appear as {@code<foo />} instead of
+	 * {@code<foo></foo>}
+	 * @param element the element
+	 * @throws SAXException
+	 */
 	private void childless(Element element) throws SAXException {
 		Attributes attributes = getElementAttributes(element);
-		indent();
 		handler.startElement(element.getNamespaceURI(), "", element.getLocalName(), attributes);
 		handler.endElement(element.getNamespaceURI(), "", element.getLocalName());
 	}
@@ -447,11 +521,11 @@ public class XCardWriter extends StreamWriter {
 	}
 
 	private void start(String element) throws SAXException {
-		start(element, null);
+		start(element, new AttributesImpl());
 	}
 
 	private void start(QName qname) throws SAXException {
-		start(qname, null);
+		start(qname, new AttributesImpl());
 	}
 
 	private void start(QName qname, Attributes attributes) throws SAXException {
@@ -463,7 +537,6 @@ public class XCardWriter extends StreamWriter {
 	}
 
 	private void start(String namespace, String element, Attributes attributes) throws SAXException {
-		indent();
 		handler.startElement(namespace, "", element, attributes);
 	}
 
@@ -480,17 +553,11 @@ public class XCardWriter extends StreamWriter {
 	}
 
 	private void end(String namespace, String element) throws SAXException {
-		if (!textNodeJustPrinted) {
-			indent();
-		}
-
 		handler.endElement(namespace, "", element);
-		textNodeJustPrinted = false;
 	}
 
 	private void text(String text) throws SAXException {
 		handler.characters(text.toCharArray(), 0, text.length());
-		textNodeJustPrinted = true;
 	}
 
 	private Attributes getElementAttributes(Element element) {
@@ -498,7 +565,13 @@ public class XCardWriter extends StreamWriter {
 		NamedNodeMap attributeNodes = element.getAttributes();
 		for (int i = 0; i < attributeNodes.getLength(); i++) {
 			Node node = attributeNodes.item(i);
-			attributes.addAttribute(node.getNamespaceURI(), "", node.getLocalName(), "", node.getNodeValue());
+
+			String localName = node.getLocalName();
+			if ("xmlns".equals(localName)) {
+				continue;
+			}
+
+			attributes.addAttribute(node.getNamespaceURI(), "", localName, "", node.getNodeValue());
 		}
 		return attributes;
 	}

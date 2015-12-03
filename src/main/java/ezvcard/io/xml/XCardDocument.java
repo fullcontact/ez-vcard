@@ -23,7 +23,13 @@ import java.util.Map;
 
 import javax.xml.namespace.QName;
 import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -31,6 +37,7 @@ import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import ezvcard.VCard;
@@ -132,12 +139,11 @@ import ezvcard.util.XmlUtils;
 //@formatter:on
 public class XCardDocument {
 	private final VCardVersion version4 = VCardVersion.V4_0; //xCard only supports 4.0
-
 	private final Document document;
 	private Element root;
 
 	/**
-	 * Creates an xCard document.
+	 * Creates an empty xCard document.
 	 */
 	public XCardDocument() {
 		this(createXCardsRoot());
@@ -197,9 +203,8 @@ public class XCardDocument {
 	 * character encoding that is defined within the XML document itself, and
 	 * should only be used if the encoding is undefined or if the encoding needs
 	 * to be ignored for whatever reason. The
-	 * {@link #XCardDocument(InputStream)} constructor should be used instead,
-	 * since it takes the XML document's character encoding into account when
-	 * parsing.
+	 * {@link #XCardDocument(InputStream)} constructor is preferred, since it
+	 * takes the XML document's character encoding into account when parsing.
 	 * </p>
 	 * @param reader the reader to read the vCards from
 	 * @throws IOException if there's a problem reading from the reader
@@ -224,7 +229,7 @@ public class XCardDocument {
 			//find the <vcards> element
 			root = (Element) xpath.evaluate("//" + nsContext.getPrefix() + ":" + VCARDS.getLocalPart(), document, XPathConstants.NODE);
 		} catch (XPathExpressionException e) {
-			//never thrown because xpath expression is hard coded
+			//should never thrown because the xpath expression is hard coded
 			throw new RuntimeException(e);
 		}
 	}
@@ -232,7 +237,7 @@ public class XCardDocument {
 	/**
 	 * Creates a {@link StreamReader} object that reads vCards from this XML
 	 * document.
-	 * @return the writer
+	 * @return the reader
 	 */
 	public StreamReader reader() {
 		return new XCardDocumentStreamReader();
@@ -248,7 +253,7 @@ public class XCardDocument {
 	}
 
 	/**
-	 * Gets the XML document that was generated.
+	 * Gets the wrapped XML document.
 	 * @return the XML document
 	 */
 	public Document getDocument() {
@@ -264,7 +269,7 @@ public class XCardDocument {
 		try {
 			return reader().readAll();
 		} catch (IOException e) {
-			//not thrown because reading from DOM
+			//not thrown because we're reading from a DOM
 			throw new RuntimeException(e);
 		}
 	}
@@ -272,15 +277,15 @@ public class XCardDocument {
 	/**
 	 * Adds a vCard to the XML document.
 	 * @param vcard the vCard to add
-	 * @throws IllegalArgumentException if a scribe hasn't been registered for a
-	 * custom property class
+	 * @throws IllegalArgumentException if no scribe has been registered for the
+	 * property (only applies to custom property classes)
 	 */
 	public void add(VCard vcard) {
 		writer().write(vcard);
 	}
 
 	/**
-	 * Writes the XML document to a string without pretty-printing it.
+	 * Writes the XML document to a string.
 	 * @return the XML string
 	 */
 	public String write() {
@@ -288,23 +293,50 @@ public class XCardDocument {
 	}
 
 	/**
-	 * Writes the XML document to a string and pretty-prints it.
-	 * @param indent the number of indent spaces to use for pretty-printing
+	 * Writes the XML document to a string.
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
 	 * @return the XML string
 	 */
 	public String write(int indent) {
+		return write(indent, null);
+	}
+
+	/**
+	 * Writes the XML document to a string.
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
+	 * @param xmlVersion the XML version to use (defaults to "1.0") (Note: Many
+	 * JDKs only support 1.0 natively. For XML 1.1 support, add a JAXP library
+	 * like <a href=
+	 * "http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22xalan%22%20AND%20a%3A%22xalan%22"
+	 * >xalan</a> to your project)
+	 * @return the XML string
+	 */
+	public String write(int indent, String xmlVersion) {
+		return write(createOutputProperties(indent, xmlVersion));
+	}
+
+	/**
+	 * Writes the XML document to a string.
+	 * @param outputProperties properties to assign to the JAXP
+	 * transformer (see {@link Transformer#setOutputProperty})
+	 * @return the XML string
+	 */
+	public String write(Map<String, String> outputProperties) {
 		StringWriter sw = new StringWriter();
 		try {
-			write(sw, indent);
+			write(sw, outputProperties);
 		} catch (TransformerException e) {
-			//writing to string
+			//should not be thrown because we're writing to a string
+			throw new RuntimeException(e);
 		}
 		return sw.toString();
 	}
 
 	/**
-	 * Writes the XML document to an output stream without pretty-printing it.
-	 * @param out the output stream
+	 * Writes the XML document to an output stream.
+	 * @param out the output stream (UTF-8 encoding will be used)
 	 * @throws TransformerException if there's a problem writing to the output
 	 * stream
 	 */
@@ -313,19 +345,49 @@ public class XCardDocument {
 	}
 
 	/**
-	 * Writes the XML document to an output stream and pretty-prints it.
-	 * @param out the output stream
-	 * @param indent the number of indent spaces to use for pretty-printing
+	 * Writes the XML document to an output stream.
+	 * @param out the output stream (UTF-8 encoding will be used)
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
 	 * @throws TransformerException if there's a problem writing to the output
 	 * stream
 	 */
 	public void write(OutputStream out, int indent) throws TransformerException {
-		write(utf8Writer(out), indent);
+		write(out, indent, null);
 	}
 
 	/**
-	 * Writes the XML document to a file without pretty-printing it.
-	 * @param file the file
+	 * Writes the XML document to an output stream.
+	 * @param out the output stream (UTF-8 encoding will be used)
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
+	 * @param xmlVersion the XML version to use (defaults to "1.0") (Note: Many
+	 * JDKs only support 1.0 natively. For XML 1.1 support, add a JAXP library
+	 * like <a href=
+	 * "http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22xalan%22%20AND%20a%3A%22xalan%22"
+	 * >xalan</a> to your project)
+	 * @throws TransformerException if there's a problem writing to the output
+	 * stream
+	 */
+	public void write(OutputStream out, int indent, String xmlVersion) throws TransformerException {
+		write(out, createOutputProperties(indent, xmlVersion));
+	}
+
+	/**
+	 * Writes the XML document to an output stream.
+	 * @param out the output stream (UTF-8 encoding will be used)
+	 * @param outputProperties properties to assign to the JAXP
+	 * transformer (see {@link Transformer#setOutputProperty})
+	 * @throws TransformerException if there's a problem writing to the output
+	 * stream
+	 */
+	public void write(OutputStream out, Map<String, String> outputProperties) throws TransformerException {
+		write(utf8Writer(out), outputProperties);
+	}
+
+	/**
+	 * Writes the XML document to a file.
+	 * @param file the file to write to (UTF-8 encoding will be used)
 	 * @throws TransformerException if there's a problem writing to the file
 	 * @throws IOException if there's a problem writing to the file
 	 */
@@ -334,23 +396,53 @@ public class XCardDocument {
 	}
 
 	/**
-	 * Writes the XML document to a file and pretty-prints it.
-	 * @param file the file stream
-	 * @param indent the number of indent spaces to use for pretty-printing
+	 * Writes the XML document to a file.
+	 * @param file the file to write to (UTF-8 encoding will be used)
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
 	 * @throws TransformerException if there's a problem writing to the file
 	 * @throws IOException if there's a problem writing to the file
 	 */
 	public void write(File file, int indent) throws TransformerException, IOException {
+		write(file, indent, null);
+	}
+
+	/**
+	 * Writes the XML document to a file.
+	 * @param file the file to write to (UTF-8 encoding will be used)
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
+	 * @param xmlVersion the XML version to use (defaults to "1.0") (Note: Many
+	 * JDKs only support 1.0 natively. For XML 1.1 support, add a JAXP library
+	 * like <a href=
+	 * "http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22xalan%22%20AND%20a%3A%22xalan%22"
+	 * >xalan</a> to your project)
+	 * @throws TransformerException if there's a problem writing to the file
+	 * @throws IOException if there's a problem writing to the file
+	 */
+	public void write(File file, int indent, String xmlVersion) throws TransformerException, IOException {
+		write(file, createOutputProperties(indent, xmlVersion));
+	}
+
+	/**
+	 * Writes the XML document to a file.
+	 * @param file the file to write to (UTF-8 encoding will be used)
+	 * @param outputProperties properties to assign to the JAXP
+	 * transformer (see {@link Transformer#setOutputProperty})
+	 * @throws TransformerException if there's a problem writing to the file
+	 * @throws IOException if there's a problem writing to the file
+	 */
+	public void write(File file, Map<String, String> outputProperties) throws TransformerException, IOException {
 		Writer writer = utf8Writer(file);
 		try {
-			write(writer, indent);
+			write(writer, outputProperties);
 		} finally {
-			IOUtils.closeQuietly(writer);
+			writer.close();
 		}
 	}
 
 	/**
-	 * Writes the XML document to a writer without pretty-printing it.
+	 * Writes the XML document to a writer.
 	 * @param writer the writer
 	 * @throws TransformerException if there's a problem writing to the writer
 	 */
@@ -359,18 +451,80 @@ public class XCardDocument {
 	}
 
 	/**
-	 * Writes the XML document to a writer and pretty-prints it.
+	 * Writes the XML document to a writer.
 	 * @param writer the writer
-	 * @param indent the number of indent spaces to use for pretty-printing
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
 	 * @throws TransformerException if there's a problem writing to the writer
 	 */
 	public void write(Writer writer, int indent) throws TransformerException {
+		write(writer, indent, null);
+	}
+
+	/**
+	 * Writes the XML document to a writer.
+	 * @param writer the writer
+	 * @param indent the number of indent spaces to use for pretty-printing or
+	 * "-1" to disable pretty-printing (disabled by default)
+	 * @param xmlVersion the XML version to use (defaults to "1.0") (Note: Many
+	 * JDKs only support 1.0 natively. For XML 1.1 support, add a JAXP library
+	 * like <a href=
+	 * "http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22xalan%22%20AND%20a%3A%22xalan%22"
+	 * >xalan</a> to your project)
+	 * @throws TransformerException if there's a problem writing to the writer
+	 */
+	public void write(Writer writer, int indent, String xmlVersion) throws TransformerException {
+		write(writer, createOutputProperties(indent, xmlVersion));
+	}
+
+	/**
+	 * Writes the XML document to a writer.
+	 * @param writer the writer
+	 * @param outputProperties properties to assign to the JAXP
+	 * transformer (see {@link Transformer#setOutputProperty})
+	 * @throws TransformerException if there's a problem writing to the writer
+	 */
+	public void write(Writer writer, Map<String, String> outputProperties) throws TransformerException {
+		Transformer transformer;
+		try {
+			transformer = TransformerFactory.newInstance().newTransformer();
+		} catch (TransformerConfigurationException e) {
+			//should never be thrown because we're not doing anything fancy with the configuration
+			throw new RuntimeException(e);
+		} catch (TransformerFactoryConfigurationError e) {
+			//should never be thrown because we're not doing anything fancy with the configuration
+			throw new RuntimeException(e);
+		}
+
+		/*
+		 * Using Transformer#setOutputProperties(Properties) doesn't work for
+		 * some reason for setting the number of indentation spaces.
+		 */
+		for (Map.Entry<String, String> entry : outputProperties.entrySet()) {
+			String key = entry.getKey();
+			String value = entry.getValue();
+			transformer.setOutputProperty(key, value);
+		}
+
+		DOMSource source = new DOMSource(document);
+		StreamResult result = new StreamResult(writer);
+		transformer.transform(source, result);
+	}
+
+	private Map<String, String> createOutputProperties(int indent, String xmlVersion) {
 		Map<String, String> properties = new HashMap<String, String>();
+		properties.put(OutputKeys.METHOD, "xml");
+
 		if (indent >= 0) {
 			properties.put(OutputKeys.INDENT, "yes");
 			properties.put("{http://xml.apache.org/xslt}indent-amount", indent + "");
 		}
-		XmlUtils.toWriter(document, writer, properties);
+
+		if (xmlVersion != null) {
+			properties.put(OutputKeys.VERSION, xmlVersion);
+		}
+
+		return properties;
 	}
 
 	private class XCardDocumentStreamReader extends StreamReader {
@@ -411,7 +565,7 @@ public class XCardDocument {
 		private void parseVCardElement(Element vcardElement) {
 			List<Element> children = XmlUtils.toElementList(vcardElement.getChildNodes());
 			for (Element child : children) {
-				if (GROUP.getNamespaceURI().equals(child.getNamespaceURI()) && GROUP.getLocalPart().equals(child.getLocalName())) {
+				if (XmlUtils.hasQName(child, GROUP)) {
 					String group = child.getAttribute("name");
 					if (group.length() == 0) {
 						group = null;
@@ -473,7 +627,7 @@ public class XCardDocument {
 		}
 
 		/**
-		 * Parses the property parameters (aka "sub types").
+		 * Parses the property parameters.
 		 * @param element the property's XML element
 		 * @return the parsed parameters
 		 */
@@ -499,7 +653,7 @@ public class XCardDocument {
 		private List<Element> getChildElements(Element parent, QName qname) {
 			List<Element> elements = new ArrayList<Element>();
 			for (Element child : XmlUtils.toElementList(parent.getChildNodes())) {
-				if (qname.getLocalPart().equals(child.getLocalName()) && qname.getNamespaceURI().equals(child.getNamespaceURI())) {
+				if (XmlUtils.hasQName(child, qname)) {
 					elements.add(child);
 				}
 			}
@@ -532,7 +686,7 @@ public class XCardDocument {
 			try {
 				super.write(vcard);
 			} catch (IOException e) {
-				//won't be thrown because writing to DOM
+				//won't be thrown because we're writing to a DOM
 			}
 		}
 
@@ -607,26 +761,36 @@ public class XCardDocument {
 
 		/**
 		 * Marshals a type object to an XML element.
-		 * @param type the type object to marshal
+		 * @param property the property to marshal
 		 * @param vcard the vcard the type belongs to
 		 * @return the XML element
 		 */
 		@SuppressWarnings({ "rawtypes", "unchecked" })
-		private Element marshalProperty(VCardProperty type, VCard vcard) {
-			VCardPropertyScribe scribe = index.getPropertyScribe(type);
-			VCardParameters parameters = scribe.prepareParameters(type, version4, vcard);
+		private Element marshalProperty(VCardProperty property, VCard vcard) {
+			VCardPropertyScribe scribe = index.getPropertyScribe(property);
 
-			QName qname = scribe.getQName();
-			Element propertyElement = createElement(qname);
-
-			//marshal the parameters
-			if (!parameters.isEmpty()) {
-				Element parametersElement = marshalParameters(parameters);
-				propertyElement.appendChild(parametersElement);
+			Element propertyElement;
+			if (property instanceof Xml) {
+				Xml xml = (Xml) property;
+				Document propertyDocument = xml.getValue();
+				if (propertyDocument == null) {
+					throw new SkipMeException();
+				}
+				propertyElement = XmlUtils.getRootElement(propertyDocument);
+				propertyElement = (Element) document.importNode(propertyElement, true);
+			} else {
+				QName qname = scribe.getQName();
+				propertyElement = createElement(qname);
+				scribe.writeXml(property, propertyElement);
 			}
 
-			//marshal the value
-			scribe.writeXml(type, propertyElement);
+			//marshal the parameters
+			VCardParameters parameters = scribe.prepareParameters(property, version4, vcard);
+			if (!parameters.isEmpty()) {
+				Element parametersElement = marshalParameters(parameters);
+				Node firstChild = propertyElement.getFirstChild();
+				propertyElement.insertBefore(parametersElement, firstChild);
+			}
 
 			return propertyElement;
 		}

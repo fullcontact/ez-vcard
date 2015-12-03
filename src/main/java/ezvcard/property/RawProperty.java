@@ -1,6 +1,12 @@
 package ezvcard.property;
 
+import java.util.List;
+import java.util.regex.Pattern;
+
+import ezvcard.VCard;
 import ezvcard.VCardDataType;
+import ezvcard.VCardVersion;
+import ezvcard.Warning;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -95,5 +101,12 @@ public class RawProperty extends TextProperty {
 	 */
 	public void setDataType(VCardDataType dataType) {
 		this.dataType = dataType;
+	}
+
+	protected void _validate(List<Warning> warnings, VCardVersion version, VCard vcard) {
+		Pattern validCharacters = Pattern.compile("(?i)[-a-z0-9]+");
+		if (!validCharacters.matcher(propertyName).matches()) {
+			warnings.add(new Warning(24, propertyName));
+		}
 	}
 }

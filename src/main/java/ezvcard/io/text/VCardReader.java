@@ -1,5 +1,6 @@
 package ezvcard.io.text;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -72,49 +73,52 @@ import ezvcard.util.org.apache.commons.codec.net.QuotedPrintableCodec;
  * 
  * <pre class="brush:java">
  * File file = new File("vcards.vcf");
- * VCardReader vcardReader = new VCardReader(file);
- * VCard vcard;
- * while ((vcard = vcardReader.readNext()) != null){
- *   ...
+ * VCardReader reader = null;
+ * try {
+ *   reader = new VCardReader(file);
+ *   VCard vcard;
+ *   while ((vcard = reader.readNext()) != null){
+ *     ...
+ *   }
+ * } finally {
+ *   if (reader != null) reader.close();
  * }
- * vcardReader.close();
  * </pre>
  * 
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://www.imc.org/pdi/vcard-21.rtf">vCard 2.1</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426">RFC 2426 (3.0)</a>
+ * @see <a href="http://tools.ietf.org/html/rfc6350">RFC 6350 (4.0)</a>
  */
 public class VCardReader extends StreamReader {
-	private Charset defaultQuotedPrintableCharset;
 	private final VCardRawReader reader;
+	private Charset defaultQuotedPrintableCharset;
 
 	/**
-	 * Creates a vCard reader.
-	 * @param str the string to read the vCards from
+	 * @param str the string to read from
 	 */
 	public VCardReader(String str) {
 		this(new StringReader(str));
 	}
 
 	/**
-	 * Creates a vCard reader.
-	 * @param in the input stream to read the vCards from
+	 * @param in the input stream to read from
 	 */
 	public VCardReader(InputStream in) {
 		this(new InputStreamReader(in));
 	}
 
 	/**
-	 * Creates a vCard reader.
-	 * @param file the file to read the vCards from
+	 * @param file the file to read from
 	 * @throws FileNotFoundException if the file doesn't exist
 	 */
 	public VCardReader(File file) throws FileNotFoundException {
-		this(new FileReader(file));
+		this(new BufferedReader(new FileReader(file)));
 	}
 
 	/**
-	 * Creates a vCard reader.
-	 * @param reader the reader to read the vCards from
+	 * @param reader the reader to read from
 	 */
 	public VCardReader(Reader reader) {
 		this.reader = new VCardRawReader(reader);
@@ -193,7 +197,7 @@ public class VCardReader extends StreamReader {
 				line = reader.readLine();
 			} catch (VCardParseException e) {
 				if (!vcardStack.isEmpty()) {
-					warnings.add(reader.getLineNum(), null, 27, e.getLine());
+					warnings.add(e.getLineNumber(), null, 27, e.getLine());
 				}
 				continue;
 			}
@@ -262,15 +266,15 @@ public class VCardReader extends StreamReader {
 				VCard curVCard = vcardStack.getLast();
 				VCardVersion version = curVCard.getVersion();
 
-				//tweak the parameters
+				//sanitize the parameters
 				processNamelessParameters(parameters);
 				processQuotedMultivaluedTypeParams(parameters);
 
 				//decode property value from quoted-printable
 				try {
-					value = decodeQuotedPrintable(name, parameters, value);
+					value = decodeQuotedPrintableValue(name, parameters, value);
 				} catch (DecoderException e) {
-					warnings.add(reader.getLineNum(), name, 38, e.getMessage());
+					warnings.add(reader.getLineNumber(), name, 38, e.getMessage());
 				}
 
 				//get the scribe
@@ -279,7 +283,7 @@ public class VCardReader extends StreamReader {
 					scribe = new RawPropertyScribe(name);
 				}
 
-				//get the data type
+				//get the data type (VALUE parameter)
 				VCardDataType dataType = parameters.getValue();
 				if (dataType == null) {
 					//use the default data type if there is no VALUE parameter
@@ -294,22 +298,27 @@ public class VCardReader extends StreamReader {
 					Result<? extends VCardProperty> result = scribe.parseText(value, dataType, version, parameters);
 
 					for (String warning : result.getWarnings()) {
-						warnings.add(reader.getLineNum(), name, warning);
+						warnings.add(reader.getLineNumber(), name, warning);
 					}
 
 					property = result.getProperty();
 					property.setGroup(group);
 
 					if (property instanceof Label) {
-						//LABELs must be treated specially so they can be matched up with their ADRs
-						labelStack.getLast().add((Label) property);
+						/*
+						 * LABEL properties must be treated specially so they
+						 * can be matched up with the ADR properties that they
+						 * belong to.
+						 */
+						Label label = (Label) property;
+						labelStack.getLast().add(label);
 					} else {
 						curVCard.addProperty(property);
 					}
 				} catch (SkipMeException e) {
-					warnings.add(reader.getLineNum(), name, 22, e.getMessage());
+					warnings.add(reader.getLineNumber(), name, 22, e.getMessage());
 				} catch (CannotParseException e) {
-					warnings.add(reader.getLineNum(), name, 25, value, e.getMessage());
+					warnings.add(reader.getLineNumber(), name, 25, value, e.getMessage());
 					property = new RawProperty(name, value);
 					property.setGroup(group);
 					curVCard.addProperty(property);
@@ -335,7 +344,7 @@ public class VCardReader extends StreamReader {
 							//shouldn't be thrown because we're reading from a string
 						} finally {
 							for (String w : agentReader.getWarnings()) {
-								warnings.add(reader.getLineNum(), name, 26, w);
+								warnings.add(reader.getLineNumber(), name, 26, w);
 							}
 							IOUtils.closeQuietly(agentReader);
 						}
@@ -355,20 +364,29 @@ public class VCardReader extends StreamReader {
 	 * @param parameters the parameters
 	 */
 	private void processNamelessParameters(VCardParameters parameters) {
-		List<String> namelessParamValues = parameters.get(null);
+		List<String> namelessParamValues = parameters.removeAll(null);
 		for (String paramValue : namelessParamValues) {
-			String paramName;
-			if (VCardDataType.find(paramValue) != null) {
-				paramName = VCardParameters.VALUE;
-			} else if (Encoding.find(paramValue) != null) {
-				paramName = VCardParameters.ENCODING;
-			} else {
-				//otherwise, assume it's a TYPE
-				paramName = VCardParameters.TYPE;
-			}
+			String paramName = guessParameterName(paramValue);
 			parameters.put(paramName, paramValue);
 		}
-		parameters.removeAll(null);
+	}
+
+	/**
+	 * Makes a guess as to what a parameter value's name should be.
+	 * @param value the parameter value
+	 * @return the guessed name
+	 */
+	private String guessParameterName(String value) {
+		if (VCardDataType.find(value) != null) {
+			return VCardParameters.VALUE;
+		}
+
+		if (Encoding.find(value) != null) {
+			return VCardParameters.ENCODING;
+		}
+
+		//otherwise, assume it's a TYPE
+		return VCardParameters.TYPE;
 	}
 
 	/**
@@ -402,12 +420,13 @@ public class VCardReader extends StreamReader {
 	 * encoding and decodes it if it is.
 	 * @param name the property name
 	 * @param parameters the property parameters
-	 * @param value the property value
+	 * @param value the property value (may or may not be encoded in
+	 * quoted-printable
 	 * @return the decoded property value or the untouched property value if it
 	 * is not encoded in quoted-printable encoding
 	 * @throws DecoderException if the value couldn't be decoded
 	 */
-	private String decodeQuotedPrintable(String name, VCardParameters parameters, String value) throws DecoderException {
+	private String decodeQuotedPrintableValue(String name, VCardParameters parameters, String value) throws DecoderException {
 		if (parameters.getEncoding() != Encoding.QUOTED_PRINTABLE) {
 			//the property value is not encoded in quoted-printable encoding
 			return value;
@@ -434,7 +453,7 @@ public class VCardReader extends StreamReader {
 				charset = defaultQuotedPrintableCharset;
 
 				//the given charset was invalid, so add a warning
-				warnings.add(reader.getLineNum(), name, 23, charsetStr, charset.name());
+				warnings.add(reader.getLineNumber(), name, 23, charsetStr, charset.name());
 			}
 		}
 

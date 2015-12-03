@@ -5,6 +5,7 @@ import static ezvcard.io.xml.XCardQNames.PARAMETERS;
 import static ezvcard.io.xml.XCardQNames.VCARD;
 import static ezvcard.io.xml.XCardQNames.VCARDS;
 
+import java.io.BufferedInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -86,14 +87,17 @@ import ezvcard.util.XmlUtils;
  * <b>Example:</b>
  * 
  * <pre class="brush:java">
- * File file = new File(&quot;vcards.xml&quot;);
- * List&lt;VCard&gt; vcards = new ArrayList&lt;VCard&gt;();
- * XCardReader xcardReader = new XCardReader(file);
- * VCard vcard;
- * while ((vcard = xcardReader.readNext()) != null) {
- * 	vcards.add(vcard);
+ * File file = new File("vcards.xml");
+ * XCardReader reader = null;
+ * try {
+ *   reader = new XCardReader(file);
+ *   VCard vcard;
+ *   while ((vcard = reader.readNext()) != null){
+ * 	   ...
+ *   }
+ * } finally {
+ *   if (reader != null) reader.close();
  * }
- * xcardReader.close();
  * </pre>
  * 
  * </p>
@@ -116,16 +120,14 @@ public class XCardReader extends StreamReader {
 	private final BlockingQueue<Object> threadBlock = new ArrayBlockingQueue<Object>(1);
 
 	/**
-	 * Creates an xCard reader.
-	 * @param xml the XML to read the xCards from
+	 * @param xml the XML to read from
 	 */
 	public XCardReader(String xml) {
 		this(new StringReader(xml));
 	}
 
 	/**
-	 * Creates an xCard reader.
-	 * @param in the input stream to read the xCards from
+	 * @param in the input stream to read from
 	 */
 	public XCardReader(InputStream in) {
 		source = new StreamSource(in);
@@ -133,16 +135,14 @@ public class XCardReader extends StreamReader {
 	}
 
 	/**
-	 * Creates an xCard reader.
-	 * @param file the file to read the xCards from
+	 * @param file the file to read from
 	 * @throws FileNotFoundException if the file doesn't exist
 	 */
 	public XCardReader(File file) throws FileNotFoundException {
-		this(new FileInputStream(file));
+		this(new BufferedInputStream(new FileInputStream(file)));
 	}
 
 	/**
-	 * Creates an xCard reader.
 	 * @param reader the reader to read from
 	 */
 	public XCardReader(Reader reader) {
@@ -151,7 +151,6 @@ public class XCardReader extends StreamReader {
 	}
 
 	/**
-	 * Creates an xCard reader.
 	 * @param node the DOM node to read from
 	 */
 	public XCardReader(Node node) {
@@ -204,24 +203,12 @@ public class XCardReader extends StreamReader {
 			try {
 				transformer = TransformerFactory.newInstance().newTransformer();
 			} catch (TransformerConfigurationException e) {
-				//no complex configurations
+				//shouldn't be thrown because it's a simple configuration
 				throw new RuntimeException(e);
 			}
 
 			//prevent error messages from being printed to stderr
-			transformer.setErrorListener(new ErrorListener() {
-				public void error(TransformerException e) {
-					//empty
-				}
-
-				public void fatalError(TransformerException e) {
-					//empty
-				}
-
-				public void warning(TransformerException e) {
-					//empty
-				}
-			});
+			transformer.setErrorListener(new NoOpErrorListener());
 
 			result = new SAXResult(new ContentHandlerImpl());
 		}
@@ -259,6 +246,11 @@ public class XCardReader extends StreamReader {
 
 		@Override
 		public void characters(char[] buffer, int start, int length) throws SAXException {
+			/*
+			 * Ignore all text nodes that are outside of a property element. All
+			 * valid text nodes will be inside of property elements (parameter
+			 * values and property values)
+			 */
 			if (propertyElement == null) {
 				return;
 			}
@@ -269,8 +261,7 @@ public class XCardReader extends StreamReader {
 		@Override
 		public void startElement(String namespace, String localName, String qName, Attributes attributes) throws SAXException {
 			QName qname = new QName(namespace, localName);
-			String textContent = characterBuffer.toString();
-			characterBuffer.setLength(0);
+			String textContent = emptyCharacterBuffer();
 
 			if (structure.isEmpty()) {
 				//<vcards>
@@ -356,8 +347,7 @@ public class XCardReader extends StreamReader {
 
 		@Override
 		public void endElement(String namespace, String localName, String qName) throws SAXException {
-			String textContent = characterBuffer.toString();
-			characterBuffer.setLength(0);
+			String textContent = emptyCharacterBuffer();
 
 			if (structure.isEmpty()) {
 				//no <vcards> elements were read yet
@@ -446,10 +436,19 @@ public class XCardReader extends StreamReader {
 			}
 		}
 
+		private String emptyCharacterBuffer() {
+			String textContent = characterBuffer.toString();
+			characterBuffer.setLength(0);
+			return textContent;
+		}
+
 		private Element createElement(String namespace, String localName, Attributes attributes) {
 			Element element = DOC.createElementNS(namespace, localName);
+			applyAttributesTo(element, attributes);
+			return element;
+		}
 
-			//copy the attributes
+		private void applyAttributesTo(Element element, Attributes attributes) {
 			for (int i = 0; i < attributes.getLength(); i++) {
 				String qname = attributes.getQName(i);
 				if (qname.startsWith("xmlns:")) {
@@ -460,8 +459,6 @@ public class XCardReader extends StreamReader {
 				String value = attributes.getValue(i);
 				element.setAttribute(name, value);
 			}
-
-			return element;
 		}
 	}
 
@@ -483,7 +480,7 @@ public class XCardReader extends StreamReader {
 	 * a parameter named "parameters")
 	 * </p>
 	 */
-	private class XCardStructure {
+	private static class XCardStructure {
 		private final List<ElementType> stack = new ArrayList<ElementType>();
 
 		/**
@@ -491,7 +488,7 @@ public class XCardReader extends StreamReader {
 		 * @return the element type or null if the stack is empty
 		 */
 		public ElementType pop() {
-			return stack.isEmpty() ? null : stack.remove(stack.size() - 1);
+			return isEmpty() ? null : stack.remove(stack.size() - 1);
 		}
 
 		/**
@@ -499,7 +496,7 @@ public class XCardReader extends StreamReader {
 		 * @return the top element type or null if the stack is empty
 		 */
 		public ElementType peek() {
-			return stack.isEmpty() ? null : stack.get(stack.size() - 1);
+			return isEmpty() ? null : stack.get(stack.size() - 1);
 		}
 
 		/**
@@ -526,7 +523,12 @@ public class XCardReader extends StreamReader {
 				}
 			}
 
-			return nonNull == ElementType.parameters || nonNull == ElementType.parameter || nonNull == ElementType.parameterValue;
+			//@formatter:off
+			return
+			nonNull == ElementType.parameters ||
+			nonNull == ElementType.parameter ||
+			nonNull == ElementType.parameterValue;
+			//@formatter:on
 		}
 
 		/**
@@ -535,6 +537,23 @@ public class XCardReader extends StreamReader {
 		 */
 		public boolean isEmpty() {
 			return stack.isEmpty();
+		}
+	}
+
+	/**
+	 * An implementation of {@link ErrorListener} that doesn't do anything.
+	 */
+	private static class NoOpErrorListener implements ErrorListener {
+		public void error(TransformerException e) {
+			//do nothing
+		}
+
+		public void fatalError(TransformerException e) {
+			//do nothing
+		}
+
+		public void warning(TransformerException e) {
+			//do nothing
 		}
 	}
 

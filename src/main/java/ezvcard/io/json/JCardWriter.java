@@ -58,12 +58,15 @@ import ezvcard.property.VCardProperty;
  * <pre class="brush:java">
  * VCard vcard1 = ...
  * VCard vcard2 = ...
- * 
  * File file = new File("vcard.json");
- * JCardWriter jcardWriter = new JCardWriter(file);
- * jcardWriter.write(vcard1);
- * jcardWriter.write(vcard2);
- * jcardWriter.close();
+ * JCardWriter writer = null;
+ * try {
+ *   writer = new JCardWriter(file);
+ *   writer.write(vcard1);
+ *   writer.write(vcard2);
+ * } finally {
+ *   if (writer != null) writer.close();
+ * }
  * </pre>
  * 
  * </p>
@@ -75,16 +78,14 @@ public class JCardWriter extends StreamWriter implements Flushable {
 	private final VCardVersion targetVersion = VCardVersion.V4_0;
 
 	/**
-	 * Creates a jCard writer.
-	 * @param out the output stream to write the vCard to
+	 * @param out the output stream to write to (UTF-8 encoding will be used)
 	 */
 	public JCardWriter(OutputStream out) {
 		this(utf8Writer(out));
 	}
 
 	/**
-	 * Creates a jCard writer.
-	 * @param out the output stream to write the vCard to
+	 * @param out the output stream to write to (UTF-8 encoding will be used)
 	 * @param wrapInArray true to enclose all written vCards in a JSON array,
 	 * false not to
 	 */
@@ -93,8 +94,7 @@ public class JCardWriter extends StreamWriter implements Flushable {
 	}
 
 	/**
-	 * Creates a jCard writer.
-	 * @param file the file to write the vCard to
+	 * @param file the file to write to (UTF-8 encoding will be used)
 	 * @throws IOException if there's a problem opening the file
 	 */
 	public JCardWriter(File file) throws IOException {
@@ -102,8 +102,7 @@ public class JCardWriter extends StreamWriter implements Flushable {
 	}
 
 	/**
-	 * Creates a jCard writer.
-	 * @param file the file to write the vCard to
+	 * @param file the file to write to (UTF-8 encoding will be used)
 	 * @param wrapInArray true to enclose all written vCards in a JSON array,
 	 * false not to
 	 * @throws IOException if there's a problem opening the file
@@ -113,16 +112,14 @@ public class JCardWriter extends StreamWriter implements Flushable {
 	}
 
 	/**
-	 * Creates a jCard writer.
-	 * @param writer the writer to write the vCard to
+	 * @param writer the writer to write to
 	 */
 	public JCardWriter(Writer writer) {
 		this(writer, false);
 	}
 
 	/**
-	 * Creates a jCard writer.
-	 * @param writer the writer to write the vCard to
+	 * @param writer the writer to write to
 	 * @param wrapInArray true to enclose all written vCards in a JSON array,
 	 * false not to
 	 */

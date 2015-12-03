@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -62,18 +63,18 @@ import org.xml.sax.SAXException;
  * Generic XML utility methods.
  * @author Michael Angstadt
  */
-public class XmlUtils {
+public final class XmlUtils {
 	/**
 	 * Creates a new XML document.
 	 * @return the XML document
 	 */
 	public static Document createDocument() {
 		try {
-			DocumentBuilderFactory fact = DocumentBuilderFactory.newInstance();
-			DocumentBuilder db = fact.newDocumentBuilder();
-			return db.newDocument();
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			return builder.newDocument();
 		} catch (ParserConfigurationException e) {
-			//will probably never be thrown because we're not doing anything fancy with the configuration
+			//should never be thrown because we're not doing anything fancy with the configuration
 			throw new RuntimeException(e);
 		}
 	}
@@ -88,7 +89,7 @@ public class XmlUtils {
 		try {
 			return toDocument(new StringReader(xml));
 		} catch (IOException e) {
-			//reading from string
+			//should never be thrown because we're reading from a string
 			throw new RuntimeException(e);
 		}
 	}
@@ -136,7 +137,7 @@ public class XmlUtils {
 		try {
 			builder = factory.newDocumentBuilder();
 		} catch (ParserConfigurationException e) {
-			//will probably never be thrown because we're not doing anything fancy with the configuration
+			//should never be thrown because we're not doing anything fancy with the configuration
 			throw new RuntimeException(e);
 		}
 
@@ -191,13 +192,27 @@ public class XmlUtils {
 		try {
 			transformer = TransformerFactory.newInstance().newTransformer();
 		} catch (TransformerConfigurationException e) {
-			//no complex configurations
+			//should never be thrown because we're not doing anything fancy with the configuration
 			throw new RuntimeException(e);
 		} catch (TransformerFactoryConfigurationError e) {
-			//no complex configurations
+			//should never be thrown because we're not doing anything fancy with the configuration
 			throw new RuntimeException(e);
 		}
 
+		assignOutputProperties(transformer, outputProperties);
+
+		DOMSource source = new DOMSource(node);
+		StreamResult result = new StreamResult(writer);
+		transformer.transform(source, result);
+	}
+
+	/**
+	 * Assigns the given output properties to the given transformer, ignoring
+	 * invalid output properties.
+	 * @param transformer the transformer
+	 * @param outputProperties the output properties
+	 */
+	public static void assignOutputProperties(Transformer transformer, Map<String, String> outputProperties) {
 		for (Map.Entry<String, String> property : outputProperties.entrySet()) {
 			try {
 				transformer.setOutputProperty(property.getKey(), property.getValue());
@@ -205,10 +220,6 @@ public class XmlUtils {
 				//ignore invalid output properties
 			}
 		}
-
-		DOMSource source = new DOMSource(node);
-		StreamResult result = new StreamResult(writer);
-		transformer.transform(source, result);
 	}
 
 	/**
@@ -259,6 +270,16 @@ public class XmlUtils {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Determines if a node has a particular qualified name.
+	 * @param node the node
+	 * @param qname the qualified name
+	 * @return true if the node has the given qualified name, false if not
+	 */
+	public static boolean hasQName(Node node, QName qname) {
+		return qname.getNamespaceURI().equals(node.getNamespaceURI()) && qname.getLocalPart().equals(node.getLocalName());
 	}
 
 	private XmlUtils() {

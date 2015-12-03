@@ -102,6 +102,7 @@ public class XCardWriterTest {
 
 	@BeforeClass
 	public static void beforeClass() {
+		XMLUnit.setIgnoreAttributeOrder(true);
 		XMLUnit.setIgnoreWhitespace(true);
 	}
 
@@ -579,7 +580,7 @@ public class XCardWriterTest {
 	@Test
 	public void write_prettyPrint() throws Exception {
 		StringWriter sw = new StringWriter();
-		XCardWriter writer = new XCardWriter(sw, "  ");
+		XCardWriter writer = new XCardWriter(sw, 2);
 		writer.setAddProdId(false);
 
 		VCard vcard = new VCard();
@@ -596,8 +597,7 @@ public class XCardWriterTest {
 		String nl = "(\r\n|\n|\r)";
 		//@formatter:off
 		String expectedRegex =
-		"<\\?xml version=\"1.0\" encoding=\"(utf|UTF)-8\"\\?>" + nl +
-		"<vcards xmlns=\"" + V4_0.getXmlNamespace() + "\">" + nl +
+		"<\\?xml version=\"1.0\" encoding=\"(utf|UTF)-8\"\\?><vcards xmlns=\"" + V4_0.getXmlNamespace() + "\">" + nl +
 		"  <vcard>" + nl +
 		"    <fn>" + nl +
 		"      <parameters>" + nl +
@@ -613,10 +613,46 @@ public class XCardWriterTest {
 		"      </note>" + nl +
 		"    </group>" + nl +
 		"  </vcard>" + nl +
-		"</vcards>";
+		"</vcards>" + nl;
 		//@formatter:on
 
 		assertTrue(actual.matches(expectedRegex));
+	}
+
+	@Test
+	public void write_xmlVersion_default() throws Exception {
+		StringWriter sw = new StringWriter();
+		XCardWriter writer = new XCardWriter(sw);
+		VCard vcard = new VCard();
+		writer.write(vcard);
+		writer.close();
+
+		String xml = sw.toString();
+		assertTrue(xml.matches("(?i)<\\?xml.*?version=\"1.0\".*?\\?>.*"));
+	}
+
+	@Test
+	public void write_xmlVersion_1_1() throws Exception {
+		StringWriter sw = new StringWriter();
+		XCardWriter writer = new XCardWriter(sw, -1, "1.1");
+		VCard vcard = new VCard();
+		writer.write(vcard);
+		writer.close();
+
+		String xml = sw.toString();
+		assertTrue(xml.matches("(?i)<\\?xml.*?version=\"1.1\".*?\\?>.*"));
+	}
+
+	@Test
+	public void write_xmlVersion_invalid() throws Exception {
+		StringWriter sw = new StringWriter();
+		XCardWriter writer = new XCardWriter(sw, -1, "10.17");
+		VCard vcard = new VCard();
+		writer.write(vcard);
+		writer.close();
+
+		String xml = sw.toString();
+		assertTrue(xml.matches("(?i)<\\?xml.*?version=\"1.0\".*?\\?>.*"));
 	}
 
 	@Test
