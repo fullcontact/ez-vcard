@@ -18,13 +18,13 @@ import ezvcard.util.TelUri;
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -126,9 +126,10 @@ public class TelephoneScribe extends VCardPropertyScribe<Telephone> {
 
 		String uri = element.first(VCardDataType.URI);
 		if (uri != null) {
-			try {
-				return new Telephone(TelUri.parse(uri));
-			} catch (IllegalArgumentException e) {
+			TelUri parse = TelUri.parse(uri);
+			if (parse != null) {
+				return new Telephone(parse);
+			} else {
 				warnings.add(Messages.INSTANCE.getParseMessage(18));
 				return new Telephone(uri);
 			}
@@ -141,9 +142,10 @@ public class TelephoneScribe extends VCardPropertyScribe<Telephone> {
 	protected Telephone _parseHtml(HCardElement element, List<String> warnings) {
 		Telephone property;
 		String href = element.attr("href");
-		try {
-			property = new Telephone(TelUri.parse(href));
-		} catch (IllegalArgumentException e) {
+		TelUri parse = TelUri.parse(href);
+		if (parse != null) {
+			property = new Telephone(parse);
+		} else {
 			//not a tel URI
 			property = new Telephone(element.value());
 		}
@@ -178,9 +180,10 @@ public class TelephoneScribe extends VCardPropertyScribe<Telephone> {
 	}
 
 	private Telephone parse(String value, VCardDataType dataType, List<String> warnings) {
-		try {
-			return new Telephone(TelUri.parse(value));
-		} catch (IllegalArgumentException e) {
+		TelUri parse = TelUri.parse(value);
+		if (parse != null) {
+			return new Telephone(parse);
+		} else {
 			if (dataType == VCardDataType.URI) {
 				warnings.add(Messages.INSTANCE.getParseMessage(18));
 			}
