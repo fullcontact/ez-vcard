@@ -51,6 +51,12 @@
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.16.4</version>
+			<scope>provided</scope>
+		</dependency>
 		<!--
 		Source code of commons-codec has been included in the project to improve Android compatibility.
 		See: https://groups.google.com/forum/?fromgroups=#!topic/ez-vcard-discuss/w2TK7yetwr8
@@ -116,7 +122,7 @@
 					<include>ezvcard/ez-vcard.properties</include>
 				</includes>
 			</resource>
-			
+
 			<!--
 			Apparently, the "eclipse:eclipse" goal doesn't like the above <resource> definitions, so use the one below when running this goal
 			<resource>
@@ -138,7 +144,7 @@
 						Otherwise, it will copy the unfiltered versions in "src/main/resources" to the JAR.
 						-->
 						<Include-Resource>{maven-resources}, {ezvcard/ez-vcard.properties=target/classes/ezvcard/ez-vcard.properties}</Include-Resource>
-						
+
 						<!-- Define optional dependencies -->
 						<Import-Package>
 							com.fasterxml.jackson.*;resolution:=optional,
@@ -289,8 +295,8 @@
 					</targetTests>
 				</configuration>
 			</plugin>
-			
-			<!-- 
+
+			<!--
 			For codecov.io.
 			-->
 			<plugin>
