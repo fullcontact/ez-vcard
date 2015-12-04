@@ -70,7 +70,7 @@ public class VCardRawWriter implements Closeable, Flushable {
 	 * specification is much more strict, but the goal here is to be as lenient
 	 * as possible.
 	 */
-	private static final Pattern propertyNameRegex = Pattern.compile("(?i)[-a-z0-9]+");
+	private static final String invalidPropertyGroupNameCharacters = ".;:\n\r";
 
 	/**
 	 * The characters that are not valid in parameter values and that should be
