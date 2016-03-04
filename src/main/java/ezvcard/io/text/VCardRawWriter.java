@@ -21,13 +21,13 @@ import ezvcard.parameter.VCardParameters;
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -41,7 +41,7 @@ import ezvcard.parameter.VCardParameters;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -144,12 +144,12 @@ public class VCardRawWriter implements Closeable, Flushable {
 	 * vCards). This escaping mechanism allows for newlines and double quotes to
 	 * be included in parameter values.
 	 * </p>
-	 * 
+	 *
 	 * <p>
 	 * When disabled, the writer will replace newlines with spaces and double
 	 * quotes with single quotes.
 	 * </p>
-	 * 
+	 *
 	 * <table class="simpleTable">
 	 * <tr>
 	 * <th>Character</th>
@@ -174,16 +174,16 @@ public class VCardRawWriter implements Closeable, Flushable {
 	 * <td>{@code ^^}</td>
 	 * </tr>
 	 * </table>
-	 * 
+	 *
 	 * <p>
 	 * Example:
 	 * </p>
-	 * 
+	 *
 	 * <pre>
 	 * GEO;X-ADDRESS="Pittsburgh Pirates^n115 Federal St^nPitt
 	 *  sburgh, PA 15212":40.446816;80.00566
 	 * </pre>
-	 * 
+	 *
 	 * @return true if circumflex accent encoding is enabled, false if not
 	 * @see <a href="http://tools.ietf.org/html/rfc6868">RFC 6868</a>
 	 */
@@ -198,12 +198,12 @@ public class VCardRawWriter implements Closeable, Flushable {
 	 * vCards). This escaping mechanism allows for newlines and double quotes to
 	 * be included in parameter values.
 	 * </p>
-	 * 
+	 *
 	 * <p>
 	 * When disabled, the writer will replace newlines with spaces and double
 	 * quotes with single quotes.
 	 * </p>
-	 * 
+	 *
 	 * <table class="simpleTable">
 	 * <tr>
 	 * <th>Character</th>
@@ -228,16 +228,16 @@ public class VCardRawWriter implements Closeable, Flushable {
 	 * <td>{@code ^^}</td>
 	 * </tr>
 	 * </table>
-	 * 
+	 *
 	 * <p>
 	 * Example:
 	 * </p>
-	 * 
+	 *
 	 * <pre>
 	 * GEO;X-ADDRESS="Pittsburgh Pirates^n115 Federal St^nPitt
 	 *  sburgh, PA 15212":40.446816;80.00566
 	 * </pre>
-	 * 
+	 *
 	 * @param enable true to use circumflex accent encoding, false not to
 	 * @see <a href="http://tools.ietf.org/html/rfc6868">RFC 6868</a>
 	 */
@@ -349,11 +349,20 @@ public class VCardRawWriter implements Closeable, Flushable {
 	public void writeProperty(String group, String propertyName, VCardParameters parameters, String value) throws IOException {
 		//validate the group name
 		if (group != null) {
-			if (!isValidGroupName(group)) {
-				throw new IllegalArgumentException("Property \"" + propertyName + "\" has its group name set to \"" + group + "\".  This group name contains one or more invalid characters.  The following characters are not permitted: .;:\\n\\r");
+			if (propertyValidationEnabled && !isValidGroupName(group)) {
+				throw new IllegalArgumentException(
+                                    "Property \"" + propertyName + "\" has " +
+                                    "its group name set to \"" + group + "\".  " +
+                                    "This group name contains one or more " +
+                                    "invalid characters.  The following " +
+                                    "characters are not permitted: .;:\\n\\r");
 			}
 			if (beginsWithWhitespace(group)) {
-				throw new IllegalArgumentException("Property \"" + propertyName + "\" has its group name set to \"" + group + "\".  This group name begins with one or more whitespace characters, which is not permitted.");
+				throw new IllegalArgumentException(
+                                    "Property \"" + propertyName + "\" has " +
+                                    "its group name set to \"" + group + "\".  " +
+                                    "This group name begins with one or more " +
+                                    "whitespace characters, which is not permitted.");
 			}
 		}
 
