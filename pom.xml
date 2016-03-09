@@ -3,7 +3,7 @@
 	<groupId>com.googlecode.ez-vcard</groupId>
 	<artifactId>ez-vcard</artifactId>
 	<packaging>bundle</packaging> <!-- "bundle" used for OSGi support -->
-	<version>0.9.14-fc</version>
+	<version>0.9.15-fc</version>
 	<name>ez-vcard</name>
 	<url>http://github.com/fullcontact/ez-vcard</url>
 	<inceptionYear>2012</inceptionYear>
@@ -356,4 +356,13 @@
 			</build>
 		</profile>
 	</profiles>
+
+  <distributionManagement>
+    <repository>
+      <id>fullcontact</id>
+      <name>fullcontact-releases</name>
+      <url>http://fullcontact.artifactoryonline.com/fullcontact/libs-releases-local</url>
+    </repository>
+  </distributionManagement>
+
 </project>
