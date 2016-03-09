@@ -1,0 +1,13 @@
+BEGIN:VCARD
+VERSION:3.0
+UID:dee44272-a035-11e5-8d38-0e76fbc59d6f
+N:Tast;Test;;;
+FN:
+NOTE:notes 1\nnotes 2
+EMAIL;TYPE=HOME:a@a.co
+item0.URL:http://www.facebook.com/0
+item0.X-ABLABEL:_$!<HomePage>!$_
+PRODID:ez-vcard 0.9.14-fc
+COM \NWWW.COLPATRIA.COM <HTTP://www.colpatria.com>\n
+COM\NWWW.COLPATRIA.COM <HTTP://www.colpatria.com>\n\n\n\n
+END:VCARD

@@ -19,13 +19,13 @@ import ezvcard.util.StringUtils;
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -39,7 +39,7 @@ import ezvcard.util.StringUtils;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -53,6 +53,7 @@ import ezvcard.util.StringUtils;
 public class VCardRawReader implements Closeable {
 	private final Reader reader;
 	private final Buffer buffer = new Buffer();
+	private final Buffer unescapedBuffer = new Buffer();
 	private final Buffer unfoldedLine = new Buffer();
 
 	private boolean eos = false;
@@ -100,6 +101,7 @@ public class VCardRawReader implements Closeable {
 
 		propertyLineNum = lineNum;
 		buffer.clear();
+		unescapedBuffer.clear();
 		unfoldedLine.clear();
 
 		/*
@@ -183,6 +185,7 @@ public class VCardRawReader implements Closeable {
 					 * line.
 					 */
 					buffer.chop();
+					unescapedBuffer.chop();
 					unfoldedLine.chop();
 				}
 
@@ -221,6 +224,7 @@ public class VCardRawReader implements Closeable {
 
 			if (inValue) {
 				buffer.append(ch);
+				unescapedBuffer.append(ch);
 				continue;
 			}
 
@@ -255,6 +259,7 @@ public class VCardRawReader implements Closeable {
 						buffer.append(escapeChar).append(ch);
 					}
 				}
+				unescapedBuffer.append(ch);
 				escapeChar = 0;
 				continue;
 			}
@@ -262,12 +267,16 @@ public class VCardRawReader implements Closeable {
 			if (ch == '\\' || (ch == '^' && version != VCardVersion.V2_1 && caretDecodingEnabled)) {
 				//an escape character was read
 				escapeChar = ch;
+				unescapedBuffer.append(ch);
 				continue;
 			}
 
 			if (ch == '.' && group == null && propertyName == null) {
 				//set the group
-				group = buffer.getAndClear();
+				//Escape sequences are not to be processed
+				//in group names, so use unescapedBuffer.
+				group = unescapedBuffer.getAndClear();
+				buffer.clear();
 				continue;
 			}
 
@@ -275,9 +284,11 @@ public class VCardRawReader implements Closeable {
 				if (propertyName == null) {
 					//property name
 					propertyName = buffer.getAndClear();
+					unescapedBuffer.clear();
 				} else {
 					//parameter value
 					String paramValue = buffer.getAndClear();
+					unescapedBuffer.clear();
 					if (version == VCardVersion.V2_1) {
 						//2.1 allows whitespace to surround the "=", so remove it
 						paramValue = StringUtils.ltrim(paramValue);
@@ -296,12 +307,14 @@ public class VCardRawReader implements Closeable {
 			if (ch == ',' && !inQuotes && version != VCardVersion.V2_1) {
 				//multi-valued parameter
 				parameters.put(curParamName, buffer.getAndClear());
+				unescapedBuffer.clear();
 				continue;
 			}
 
 			if (ch == '=' && curParamName == null) {
 				//parameter name
 				String paramName = buffer.getAndClear();
+				unescapedBuffer.clear();
 				if (version == VCardVersion.V2_1) {
 					//2.1 allows whitespace to surround the "=", so remove it
 					paramName = StringUtils.rtrim(paramName);
@@ -317,6 +330,7 @@ public class VCardRawReader implements Closeable {
 			}
 
 			buffer.append(ch);
+			unescapedBuffer.append(ch);
 		}
 
 		if (unfoldedLine.length() == 0) {
@@ -329,6 +343,7 @@ public class VCardRawReader implements Closeable {
 		}
 
 		String value = buffer.getAndClear();
+		unescapedBuffer.clear();
 
 		if ("VERSION".equalsIgnoreCase(propertyName)) {
 			VCardVersion version = VCardVersion.valueOfByStr(value);
@@ -347,7 +362,7 @@ public class VCardRawReader implements Closeable {
 	 * accent encoding (enabled by default). This escaping mechanism allows
 	 * newlines and double quotes to be included in parameter values.
 	 * </p>
-	 * 
+	 *
 	 * <table class="simpleTable">
 	 * <tr>
 	 * <th>Raw Character</th>
@@ -366,16 +381,16 @@ public class VCardRawReader implements Closeable {
 	 * <td>{@code ^^}</td>
 	 * </tr>
 	 * </table>
-	 * 
+	 *
 	 * <p>
 	 * Example:
 	 * </p>
-	 * 
+	 *
 	 * <pre>
 	 * GEO;X-ADDRESS="Pittsburgh Pirates^n115 Federal St^nPitt
 	 *  sburgh, PA 15212":40.446816;80.00566
 	 * </pre>
-	 * 
+	 *
 	 * @return true if circumflex accent decoding is enabled, false if not
 	 * @see <a href="http://tools.ietf.org/html/rfc6868">RFC 6868</a>
 	 */
@@ -389,7 +404,7 @@ public class VCardRawReader implements Closeable {
 	 * accent encoding (enabled by default). This escaping mechanism allows
 	 * newlines and double quotes to be included in parameter values.
 	 * </p>
-	 * 
+	 *
 	 * <table class="simpleTable">
 	 * <tr>
 	 * <th>Raw Character</th>
@@ -408,16 +423,16 @@ public class VCardRawReader implements Closeable {
 	 * <td>{@code ^^}</td>
 	 * </tr>
 	 * </table>
-	 * 
+	 *
 	 * <p>
 	 * Example:
 	 * </p>
-	 * 
+	 *
 	 * <pre>
 	 * GEO;X-ADDRESS="Pittsburgh Pirates^n115 Federal St^nPitt
 	 *  sburgh, PA 15212":geo:40.446816,-80.00566
 	 * </pre>
-	 * 
+	 *
 	 * @param enable true to use circumflex accent decoding, false not to
 	 * @see <a href="http://tools.ietf.org/html/rfc6868">RFC 6868</a>
 	 */
