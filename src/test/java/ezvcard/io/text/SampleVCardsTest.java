@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import ezvcard.Ezvcard;
 import ezvcard.VCard;
 import ezvcard.parameter.AddressType;
 import ezvcard.parameter.EmailType;
@@ -44,18 +45,20 @@ import ezvcard.util.PartialDate;
 import ezvcard.util.TelUri;
 import ezvcard.util.UtcOffset;
 
+import java.io.StringWriter;
+
 /*
  Copyright (c) 2012-2015, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -69,7 +72,7 @@ import ezvcard.util.UtcOffset;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -134,7 +137,7 @@ public class SampleVCardsTest {
 			assertSimpleProperty(vcard.getFormattedNames())
 				.value("\u00d1 \u00d1 \u00d1 \u00d1 \u00d1 ")
 			.noMore();
-			
+
 			assertTelephone(vcard)
 				.types(TelephoneType.CELL, TelephoneType.PREF)
 				.text("123456789")
@@ -162,7 +165,7 @@ public class SampleVCardsTest {
 			assertSimpleProperty(vcard.getFormattedNames())
 				.value("\u00d1 \u00d1 \u00d1 \u00d1 \u00d1 \u00d1 \u00d1 \u00d1 \u00d1 \u00d1 \u00d1")
 			.noMore();
-			
+
 			assertTelephone(vcard)
 				.types(TelephoneType.CELL, TelephoneType.PREF)
 				.text("123456")
@@ -206,7 +209,7 @@ public class SampleVCardsTest {
 			assertSimpleProperty(vcard.getFormattedNames())
 				.value("\u00d1 \u00d1 \u00d1 \u00d1 ")
 			.noMore();
-			
+
 			assertTelephone(vcard)
 				.types(TelephoneType.CELL, TelephoneType.PREF)
 				.text("123456")
@@ -225,7 +228,7 @@ public class SampleVCardsTest {
 				.types(EmailType.PREF)
 				.value("\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1")
 			.noMore();
-			
+
 			assertListProperty(vcard.getOrganizations())
 				.values("\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1")
 			.next()
@@ -237,7 +240,7 @@ public class SampleVCardsTest {
 			.next()
 				.value("http://www.company.com")
 			.noMore();
-			
+
 			assertBinaryProperty(vcard.getPhotos())
 				.contentType(ImageType.JPEG)
 				.dataLength(876)
@@ -261,7 +264,7 @@ public class SampleVCardsTest {
 			assertSimpleProperty(vcard.getFormattedNames())
 				.value("\u00d1\u00d1\u00d1\u00d1")
 			.noMore();
-			
+
 			assertTelephone(vcard)
 				.types(TelephoneType.CELL, TelephoneType.PREF)
 				.text("55556666")
@@ -271,7 +274,7 @@ public class SampleVCardsTest {
 				.types(EmailType.PREF)
 				.value("henry@company.com")
 			.noMore();
-			
+
 			assertListProperty(vcard.getOrganizations())
 				.values("\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1\u00d1")
 			.next()
@@ -309,12 +312,12 @@ public class SampleVCardsTest {
 			.family("Doe")
 			.given("john")
 		.noMore();
-		
+
 		assertTelephone(vcard)
 			.types(TelephoneType.CELL)
 			.text("+96123456789")
 		.noMore();
-		
+
 		assertListProperty(vcard.getOrganizations())
 			.values("Acme Solutions")
 		.noMore();
@@ -322,7 +325,7 @@ public class SampleVCardsTest {
 		assertSimpleProperty(vcard.getNotes())
 			.value("")
 		.noMore();
-		
+
 		assertBinaryProperty(vcard.getPhotos())
 			.dataLength(1674)
 		.noMore();
@@ -347,7 +350,7 @@ public class SampleVCardsTest {
 			.value("http://www.ibm.com")
 			.param("X-COUCHDB-UUID", "0abc9b8d-0845-47d0-9a91-3db5bb74620d")
 		.noMore();
-		
+
 		//TEL
 		assertTelephone(vcard)
 			.types(TelephoneType.CELL)
@@ -372,12 +375,12 @@ public class SampleVCardsTest {
 			.prefixes("Mr.")
 			.suffixes("Sr.")
 		.noMore();
-		
+
 		//FN
 		assertSimpleProperty(vcard.getFormattedNames())
 			.value("Mr. John Richter, James Doe Sr.")
 		.noMore();
-		
+
 		//NICKNAME
 		assertListProperty(vcard.getNicknames())
 			.values("Johny")
@@ -409,7 +412,7 @@ public class SampleVCardsTest {
 			.value("john.doe@ibm.com")
 			.param("X-COUCHDB-UUID", "83a75a5d-2777-45aa-bab5-76a4bd972490")
 		.noMore();
-		
+
 		//ADR
 		assertAddress(vcard)
 			.poBox("ASB-123")
@@ -420,12 +423,12 @@ public class SampleVCardsTest {
 			.country("United States of America")
 			.types(AddressType.HOME)
 		.noMore();
-		
+
 		//BDAY
 		assertDateProperty(vcard.getBirthdays())
 			.date("1980-03-22")
 		.noMore();
-		
+
 		//REV
 		assertSimpleProperty(vcard.getProperties(Revision.class))
 			.value(utc("2012-03-05 13:32:54"))
@@ -438,29 +441,29 @@ public class SampleVCardsTest {
 			assertRawProperty("X-COUCHDB-APPLICATION-ANNOTATIONS", vcard)
 				.value("{\"Evolution\":{\"revision\":\"2012-03-05T13:32:54Z\"}}")
 			.noMore();
-			
+
 			assertRawProperty("X-AIM", vcard)
 				.value("johnny5@aol.com")
 				.param("TYPE", "HOME")
 				.param("X-COUCHDB-UUID", "cb9e11fc-bb97-4222-9cd8-99820c1de454")
 			.noMore();
-			
+
 			assertRawProperty("X-EVOLUTION-FILE-AS", vcard)
 				.value("Doe\\, John")
 			.noMore();
-			
+
 			assertRawProperty("X-EVOLUTION-SPOUSE", vcard)
 				.value("Maria")
 			.noMore();
-			
+
 			assertRawProperty("X-EVOLUTION-MANAGER", vcard)
 				.value("Big Blue")
 			.noMore();
-			
+
 			assertRawProperty("X-EVOLUTION-ASSISTANT", vcard)
 				.value("Little Red")
 			.noMore();
-			
+
 			assertRawProperty("X-EVOLUTION-ANNIVERSARY", vcard)
 				.value("1980-03-22")
 			.noMore();
@@ -500,7 +503,7 @@ public class SampleVCardsTest {
 			.types(EmailType.INTERNET, EmailType.HOME)
 			.value("john.doe@ibm.com")
 		.noMore();
-		
+
 		//TEL
 		assertTelephone(vcard)
 			.types(TelephoneType.CELL)
@@ -509,13 +512,13 @@ public class SampleVCardsTest {
 			.types(TelephoneType.HOME)
 			.text("905-666-1234")
 		.noMore();
-		
+
 		//ADR
 		assertAddress(vcard)
 			.extendedAddress("Crescent moon drive" + NEWLINE + "555-asd" + NEWLINE + "Nice Area, Albaney, New York 12345" + NEWLINE + "United States of America")
 			.types(AddressType.HOME)
 		.noMore();
-		
+
 		//ORG
 		assertListProperty(vcard.getOrganizations())
 			.values("IBM")
@@ -525,7 +528,7 @@ public class SampleVCardsTest {
 		assertSimpleProperty(vcard.getTitles())
 			.value("Money Counter")
 		.noMore();
-		
+
 		//BDAY
 		assertDateProperty(vcard.getBirthdays())
 			.date("1980-03-22")
@@ -549,16 +552,16 @@ public class SampleVCardsTest {
 			assertRawProperty("X-PHONETIC-FIRST-NAME", vcard)
 				.value("Jon")
 			.noMore();
-			
+
 			assertRawProperty("X-PHONETIC-LAST-NAME", vcard)
 				.value("Dow")
 			.noMore();
-			
+
 			assertRawProperty("X-ABDATE", vcard)
 				.group("item1")
 				.value("1975-03-01")
 			.noMore();
-			
+
 			assertRawProperty("X-ABLABEL", vcard)
 				.group("item1")
 				.value("_$!<Anniversary>!$_")
@@ -566,7 +569,7 @@ public class SampleVCardsTest {
 				.group("item2")
 				.value("_$!<Spouse>!$_")
 			.noMore();
-			
+
 			assertRawProperty("X-ABRELATEDNAMES", vcard)
 				.group("item2")
 				.value("Jenny")
@@ -700,7 +703,7 @@ public class SampleVCardsTest {
 			.types(EmailType.INTERNET)
 			.value("gdartmouth@hotmail.com")
 		.noMore();
-		
+
 		//TEL
 		assertTelephone(vcard)
 			.types(TelephoneType.CELL)
@@ -709,7 +712,7 @@ public class SampleVCardsTest {
 			.group("item1")
 			.text("555 555 2222")
 		.noMore();
-		
+
 		//ADR
 		assertAddress(vcard)
 			.streetAddress("123 Home St" + NEWLINE + "Home City, HM 12345")
@@ -722,7 +725,7 @@ public class SampleVCardsTest {
 			.postalCode("98765")
 			.country("USA")
 		.noMore();
-		
+
 		//ORG
 		assertListProperty(vcard.getOrganizations())
 			.values("TheCompany")
@@ -756,15 +759,15 @@ public class SampleVCardsTest {
 			assertRawProperty("X-PHONETIC-FIRST-NAME", vcard)
 				.value("Grregg")
 			.noMore();
-			
+
 			assertRawProperty("X-PHONETIC-LAST-NAME", vcard)
 				.value("Dart-mowth")
 			.noMore();
-			
+
 			assertRawProperty("X-ICQ", vcard)
 				.value("123456789")
 			.noMore();
-			
+
 			assertRawProperty("X-ABLABEL", vcard)
 				.group("item1")
 				.value("GRAND_CENTRAL")
@@ -784,12 +787,12 @@ public class SampleVCardsTest {
 				.group("item6")
 				.value("CustomRelationship")
 			.noMore();
-			
+
 			assertRawProperty("X-ABDATE", vcard)
 				.group("item4")
 				.value("1970-06-02")
 			.noMore();
-			
+
 			assertRawProperty("X-ABRELATEDNAMES", vcard)
 				.group("item5")
 				.value("MySpouse")
@@ -854,7 +857,7 @@ public class SampleVCardsTest {
 			.types(EmailType.INTERNET, EmailType.PREF)
 			.value("john.doe@ibm.com")
 		.noMore();
-		
+
 		//TEL
 		assertTelephone(vcard)
 			.types(TelephoneType.CELL, TelephoneType.VOICE, TelephoneType.PREF)
@@ -878,7 +881,7 @@ public class SampleVCardsTest {
 			.group("item2")
 			.text("905-222-1234")
 		.noMore();
-		
+
 		//ADR
 		assertAddress(vcard)
 			.group("item3")
@@ -908,7 +911,7 @@ public class SampleVCardsTest {
 		assertDateProperty(vcard.getBirthdays())
 			.date("2012-06-06")
 		.noMore();
-		
+
 		//PHOTO
 		assertBinaryProperty(vcard.getPhotos())
 			.contentType(ImageType.JPEG)
@@ -926,7 +929,7 @@ public class SampleVCardsTest {
 				.group("item5")
 				.value("_$!<HomePage>!$_")
 			.noMore();
-			
+
 			assertRawProperty("X-ABADR", vcard)
 				.group("item3")
 				.value("Silicon Alley")
@@ -964,7 +967,7 @@ public class SampleVCardsTest {
 			.prefixes("Mr.")
 			.suffixes("I")
 		.noMore();
-		
+
 		//FN
 		assertSimpleProperty(vcard.getFormattedNames())
 			.value("Mr. Doe John I Johny")
@@ -993,7 +996,7 @@ public class SampleVCardsTest {
 			.types(EmailType.INTERNET, EmailType.WORK)
 			.value("billy_bob@gmail.com")
 		.noMore();
-		
+
 		//TEL
 		assertTelephone(vcard)
 			.types(TelephoneType.CELL, TelephoneType.VOICE, TelephoneType.PREF)
@@ -1002,7 +1005,7 @@ public class SampleVCardsTest {
 			.types(TelephoneType.WORK, TelephoneType.FAX)
 			.text("00-1-212-555-7777")
 		.noMore();
-		
+
 		//ADR
 		assertAddress(vcard)
 			.group("item1")
@@ -1030,7 +1033,7 @@ public class SampleVCardsTest {
 		assertDateProperty(vcard.getBirthdays())
 			.date("1980-05-21")
 		.noMore();
-		
+
 		//PHOTO
 		assertBinaryProperty(vcard.getPhotos())
 			.contentType(ImageType.JPEG)
@@ -1041,7 +1044,7 @@ public class SampleVCardsTest {
 		assertSimpleProperty(vcard.getProperties(Uid.class))
 			.value("0e7602cc-443e-4b82-b4b1-90f62f99a199")
 		.noMore();
-		
+
 		//GEO
 		assertGeo(vcard)
 			.latitude(-2.6)
@@ -1104,15 +1107,15 @@ public class SampleVCardsTest {
 				.group("item2")
 				.value("_$!<HomePage>!$_")
 			.noMore();
-			
+
 			assertRawProperty("X-ABUID", vcard)
 				.value("0E7602CC-443E-4B82-B4B1-90F62F99A199:ABPerson")
 			.noMore();
-			
+
 			assertRawProperty("X-GENERATOR", vcard)
 				.value("Cardme Generator")
 			.noMore();
-			
+
 			assertRawProperty("X-LONG-STRING", vcard)
 				.value("12345678901234567890123456789012345678901234567890123456789012 34567890123456789012345678901234567890")
 			.noMore();
@@ -1167,7 +1170,7 @@ public class SampleVCardsTest {
 		assertSimpleProperty(vcard.getNotes())
 			.value("THIS SOFTWARE IS PROVIDED BY GEORGE EL-HADDAD ''AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL GEORGE EL-HADDAD OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.")
 		.noMore();
-		
+
 		//TEL
 		assertTelephone(vcard)
 			.types(TelephoneType.WORK, TelephoneType.VOICE)
@@ -1176,7 +1179,7 @@ public class SampleVCardsTest {
 			.types(TelephoneType.HOME, TelephoneType.VOICE)
 			.text("(905) 666-1234")
 		.noMore();
-		
+
 		//ADR
 		assertAddress(vcard)
 			.streetAddress("Cresent moon drive")
@@ -1217,13 +1220,13 @@ public class SampleVCardsTest {
 			.types(EmailType.INTERNET, EmailType.PREF)
 			.value("john.doe@ibm.cm")
 		.noMore();
-		
+
 		//PHOTO
 		assertBinaryProperty(vcard.getPhotos())
 			.contentType(ImageType.JPEG)
 			.dataLength(860)
 		.noMore();
-		
+
 		//REV
 		assertSimpleProperty(vcard.getProperties(Revision.class))
 			.value(utc("2012-03-05 13:19:33"))
@@ -1236,24 +1239,24 @@ public class SampleVCardsTest {
 			assertRawProperty("X-MS-OL-DEFAULT-POSTAL-ADDRESS", vcard)
 				.value("2")
 			.noMore();
-			
+
 			assertRawProperty("X-MS-ANNIVERSARY", vcard)
 				.value("20110113")
 			.noMore();
-			
+
 			assertRawProperty("X-MS-IMADDRESS", vcard)
 				.value("johny5@aol.com")
 			.noMore();
-			
+
 			assertRawProperty("X-MS-OL-DESIGN", vcard)
 				.value("<card xmlns=\"http://schemas.microsoft.com/office/outlook/12/electronicbusinesscards\" ver=\"1.0\" layout=\"left\" bgcolor=\"ffffff\"><img xmlns=\"\" align=\"tleft\" area=\"32\" use=\"photo\"/><fld xmlns=\"\" prop=\"name\" align=\"left\" dir=\"ltr\" style=\"b\" color=\"000000\" size=\"10\"/><fld xmlns=\"\" prop=\"org\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"title\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"dept\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"telwork\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"><label align=\"right\" color=\"626262\">Work</label></fld><fld xmlns=\"\" prop=\"telhome\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"><label align=\"right\" color=\"626262\">Home</label></fld><fld xmlns=\"\" prop=\"email\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"addrwork\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"addrhome\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"webwork\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"blank\" size=\"8\"/><fld xmlns=\"\" prop=\"blank\" size=\"8\"/><fld xmlns=\"\" prop=\"blank\" size=\"8\"/><fld xmlns=\"\" prop=\"blank\" size=\"8\"/><fld xmlns=\"\" prop=\"blank\" size=\"8\"/><fld xmlns=\"\" prop=\"blank\" size=\"8\"/></card>")
 				.param("CHARSET", "utf-8")
 			.noMore();
-			
+
 			assertRawProperty("X-MS-MANAGER", vcard)
 				.value("Big Blue")
 			.noMore();
-			
+
 			assertRawProperty("X-MS-ASSISTANT", vcard)
 				.value("Jenny")
 			.noMore();
@@ -1308,7 +1311,7 @@ public class SampleVCardsTest {
 			.value("This is the NOTE field	\r\nI assume it encodes this text inside a NOTE vCard type.\r\nBut I'm not sure because there's text formatting going on here.\r\nIt does not preserve the formatting")
 			.param("CHARSET", "us-ascii")
 		.noMore();
-		
+
 		//TEL
 		assertTelephone(vcard)
 			.types(TelephoneType.WORK, TelephoneType.VOICE)
@@ -1323,7 +1326,7 @@ public class SampleVCardsTest {
 			.types(TelephoneType.FAX, TelephoneType.WORK)
 			.text("(111) 555-3333")
 		.noMore();
-		
+
 		//ADR
 		assertAddress(vcard)
 			.extendedAddress("TheOffice")
@@ -1354,7 +1357,7 @@ public class SampleVCardsTest {
 		assertDateProperty(vcard.getBirthdays())
 			.date("1922-03-10")
 		.noMore();
-		
+
 		//KEY
 		assertBinaryProperty(vcard.getKeys())
 			.contentType(KeyType.X509)
@@ -1366,7 +1369,7 @@ public class SampleVCardsTest {
 			.types(EmailType.INTERNET, EmailType.PREF)
 			.value("mike.angstadt@gmail.com")
 		.noMore();
-			
+
 		//PHOTO
 		assertBinaryProperty(vcard.getPhotos())
 			.contentType(ImageType.JPEG)
@@ -1377,7 +1380,7 @@ public class SampleVCardsTest {
 		assertSimpleProperty(vcard.getFbUrls())
 			.value("http://website.com/mycal") //a 4.0 property in a 2.1 vCard...
 		.noMore();
-		
+
 		//REV
 		assertSimpleProperty(vcard.getProperties(Revision.class))
 			.value(utc("2012-08-01 18:46:31"))
@@ -1392,32 +1395,32 @@ public class SampleVCardsTest {
 				.param("TYPE", "VOICE")
 				.param("TYPE", "CALLBACK")
 			.noMore();
-			
+
 			assertRawProperty("X-MS-OL-DEFAULT-POSTAL-ADDRESS", vcard)
 				.value("2")
 			.noMore();
-			
+
 			assertRawProperty("X-MS-ANNIVERSARY", vcard)
 				.value("20120801")
 			.noMore();
-			
+
 			assertRawProperty("X-MS-IMADDRESS", vcard)
 				.value("im@aim.com")
 			.noMore();
-			
+
 			assertRawProperty("X-MS-OL-DESIGN", vcard)
 				.value("<card xmlns=\"http://schemas.microsoft.com/office/outlook/12/electronicbusinesscards\" ver=\"1.0\" layout=\"left\" bgcolor=\"ffffff\"><img xmlns=\"\" align=\"tleft\" area=\"32\" use=\"photo\"/><fld xmlns=\"\" prop=\"name\" align=\"left\" dir=\"ltr\" style=\"b\" color=\"000000\" size=\"10\"/><fld xmlns=\"\" prop=\"org\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"title\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"dept\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"telwork\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"><label align=\"right\" color=\"626262\">Work</label></fld><fld xmlns=\"\" prop=\"telcell\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"><label align=\"right\" color=\"626262\">Mobile</label></fld><fld xmlns=\"\" prop=\"telhome\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"><label align=\"right\" color=\"626262\">Home</label></fld><fld xmlns=\"\" prop=\"email\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"addrwork\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"webwork\" align=\"left\" dir=\"ltr\" color=\"000000\" size=\"8\"/><fld xmlns=\"\" prop=\"blank\" size=\"8\"/><fld xmlns=\"\" prop=\"blank\" size=\"8\"/><fld xmlns=\"\" prop=\"blank\" size=\"8\"/><fld xmlns=\"\" prop=\"blank\" size=\"8\"/><fld xmlns=\"\" prop=\"blank\" size=\"8\"/><fld xmlns=\"\" prop=\"blank\" size=\"8\"/></card>")
 				.param("CHARSET", "utf-8")
 			.noMore();
-			
+
 			assertRawProperty("X-MS-MANAGER", vcard)
 				.value("TheManagerName")
 			.noMore();
-			
+
 			assertRawProperty("X-MS-ASSISTANT", vcard)
 				.value("TheAssistantName")
 			.noMore();
-			
+
 			assertRawProperty("X-MS-SPOUSE", vcard)
 				.value("TheSpouse")
 			.noMore();
@@ -1472,7 +1475,7 @@ public class SampleVCardsTest {
 			.types(EmailType.INTERNET, EmailType.WORK, EmailType.PREF)
 			.value("john.doe@ibm.com")
 		.noMore();
-		
+
 		//TEL
 		assertTelephone(vcard)
 			.types(TelephoneType.WORK, TelephoneType.PREF)
@@ -1496,7 +1499,7 @@ public class SampleVCardsTest {
 			.group("item1")
 			.text("905-222-1234")
 		.noMore();
-		
+
 		//ADR
 		assertAddress(vcard)
 			.group("item2")
@@ -1531,7 +1534,7 @@ public class SampleVCardsTest {
 		assertDateProperty(vcard.getBirthdays())
 			.date("2012-06-06")
 		.noMore();
-		
+
 		//PHOTO
 		assertBinaryProperty(vcard.getPhotos())
 			.dataLength(18242)
@@ -1544,11 +1547,11 @@ public class SampleVCardsTest {
 			assertRawProperty("X-PHONETIC-FIRST-NAME", vcard)
 				.value("Jon")
 			.noMore();
-			
+
 			assertRawProperty("X-PHONETIC-LAST-NAME", vcard)
 				.value("Dow")
 			.noMore();
-			
+
 			assertRawProperty("X-ABLABEL", vcard)
 				.group("item1")
 				.value("AssistantPhone")
@@ -1559,7 +1562,7 @@ public class SampleVCardsTest {
 				.group("item5")
 				.value("Spouse")
 			.noMore();
-			
+
 			assertRawProperty("X-ABADR", vcard)
 				.group("item2")
 				.value("Silicon Alley")
@@ -1567,13 +1570,13 @@ public class SampleVCardsTest {
 				.group("item3")
 				.value("Street 4, Building 6,\\nFloor 8\\nNew York\\nUSA")
 			.noMore();
-			
+
 			assertRawProperty("X-ABRELATEDNAMES", vcard)
 				.group("item5")
 				.value("Jenny")
 				.param("TYPE",  "pref")
 			.noMore();
-			
+
 			assertRawProperty("X-ABUID", vcard)
 				.value("6B29A774-D124-4822-B8D0-2780EC117F60\\:ABPerson")
 			.noMore();
@@ -1626,7 +1629,7 @@ public class SampleVCardsTest {
 		assertSimpleProperty(vcard.getNotes())
 			.value("This is the note field!!\r\nSecond line\r\n\r\nThird line is empty\r\n")
 		.noMore();
-		
+
 		//TEL
 		assertTelephone(vcard)
 			.types(TelephoneType.WORK, TelephoneType.VOICE)
@@ -1641,7 +1644,7 @@ public class SampleVCardsTest {
 			.types(TelephoneType.FAX, TelephoneType.WORK)
 			.text("BusinessFaxPhone")
 		.noMore();
-		
+
 		//ADR
 		assertAddress(vcard)
 			.extendedAddress("TheOffice")
@@ -1669,7 +1672,7 @@ public class SampleVCardsTest {
 		assertDateProperty(vcard.getBirthdays())
 			.date("1980-03-21")
 		.noMore();
-		
+
 		//KEY
 		assertBinaryProperty(vcard.getKeys())
 			.contentType(KeyType.X509)
@@ -1688,7 +1691,7 @@ public class SampleVCardsTest {
 		assertSimpleProperty(vcard.getFbUrls())
 			.value("????????????????s????????????" + (char) 12)
 		.noMore();
-		
+
 		//REV
 		assertSimpleProperty(vcard.getProperties(Revision.class))
 			.value(utc("2012-10-12 21:05:25"))
@@ -1718,7 +1721,7 @@ public class SampleVCardsTest {
 		assertSimpleProperty(vcard.getFormattedNames())
 			.value("John Doe")
 		.noMore();
-		
+
 		//ORG
 		assertListProperty(vcard.getOrganizations())
 			.values("TheOrganization", "TheDepartment")
@@ -1812,7 +1815,7 @@ public class SampleVCardsTest {
 		assertSimpleProperty(vcard.getNotes())
 			.value("This is the notes field." + NEWLINE + "Second Line" + NEWLINE + NEWLINE + "Fourth Line" + NEWLINE + "You can put anything in the \"note\" field; even curse words.")
 		.noMore();
-		
+
 		//PHOTO
 		assertBinaryProperty(vcard.getPhotos())
 			.contentType(ImageType.JPEG)
@@ -1826,7 +1829,7 @@ public class SampleVCardsTest {
 			assertRawProperty("X-SPOUSE", vcard)
 				.value("TheSpouse")
 			.noMore();
-			
+
 			assertRawProperty("X-ANNIVERSARY", vcard)
 				.value("1990-04-30")
 			.noMore();
@@ -1863,17 +1866,17 @@ public class SampleVCardsTest {
 		assertSimpleProperty(vcard.getFormattedNames())
 			.value("Simon Perreault")
 		.noMore();
-		
+
 		assertStructuredName(vcard)
 			.family("Perreault")
 			.given("Simon")
 			.suffixes("ing. jr", "M.Sc.")
 		.noMore();
-		
+
 		assertDateProperty(vcard.getBirthdays())
 			.partialDate(PartialDate.builder().month(2).date(3).build())
 		.noMore();
-		
+
 		assertDateProperty(vcard.getAnniversaries())
 			.partialDate(PartialDate.builder().year(2009).month(8).date(8).hour(14).minute(30).offset(new UtcOffset(false, -5, 0)).build())
 		.noMore();
@@ -1887,7 +1890,7 @@ public class SampleVCardsTest {
 			.value("en")
 			.param("PREF", "2")
 		.noMore();
-		
+
 		assertAddress(vcard)
 			.extendedAddress("Suite D2-630")
 			.streetAddress("2875 Laurier")
@@ -1911,18 +1914,18 @@ public class SampleVCardsTest {
 			.types(EmailType.WORK)
 			.value("simon.perreault@viagenie.ca")
 		.noMore();
-		
+
 		assertGeo(vcard)
 			.latitude(46.772673)
 			.longitude(-71.282945)
 			.param("TYPE", "work")
 		.noMore();
-		
+
 		assertBinaryProperty(vcard.getKeys())
 			.url("http://www.viagenie.ca/simon.perreault/simon.asc")
 			.param("TYPE", "work")
 		.noMore();
-		
+
 		assertTimezone(vcard)
 			.offset(new UtcOffset(false, -5, 0))
 		.noMore();
@@ -1939,6 +1942,32 @@ public class SampleVCardsTest {
 	}
 
 	@Test
+	public void iclou_with_broken_group() throws Throwable {
+		VCardReader reader = read("icloud-broken-group.vcf");
+		VCard vcard = reader.readNext();
+		assertVersion(V3_0, vcard);
+		assertPropertyCount(10, vcard);
+
+		assertSimpleProperty(vcard.getEmails())
+			.param("TYPE", "HOME")
+			.value("a@a.co")
+			.noMore();
+		assertSimpleProperty(vcard.getUrls())
+			.group("item0")
+			.value("http://www.facebook.com/0")
+			.noMore();
+
+		/* Ensure it goes back to text with the same mangled group
+		 * names.
+		 */
+		String text = writeLenient(vcard);
+		assertTrue(text.contains("COM \\NWWW.COLPATRIA.COM " +
+					 "<HTTP://www.colpatria.com>"));
+		assertTrue(text.contains("COM\\NWWW.COLPATRIA.COM " +
+					 "<HTTP://www.colpatria.com>"));
+	}
+
+	@Test
 	public void rfc2426_example() throws Throwable {
 		VCardReader reader = read("rfc2426-example.vcf");
 
@@ -1951,7 +1980,7 @@ public class SampleVCardsTest {
 			assertSimpleProperty(vcard.getFormattedNames())
 				.value("Frank Dawson")
 			.noMore();
-			
+
 			assertListProperty(vcard.getOrganizations())
 				.values("Lotus Development Corporation")
 			.noMore();
@@ -1999,7 +2028,7 @@ public class SampleVCardsTest {
 			assertSimpleProperty(vcard.getFormattedNames())
 				.value("Tim Howes")
 			.noMore();
-			
+
 			assertListProperty(vcard.getOrganizations())
 				.values("Netscape Communications Corp.")
 			.noMore();
@@ -2036,5 +2065,13 @@ public class SampleVCardsTest {
 
 	private static VCardReader read(String filename) {
 		return new VCardReader(SampleVCardsTest.class.getResourceAsStream(filename));
+	}
+
+	private  static String writeLenient(VCard v) throws Exception {
+		StringWriter s = new StringWriter();
+		VCardWriter writer = new VCardWriter(s, V3_0);
+		writer.getRawWriter().setPropertyValidationEnabled(false);
+		writer.write(v);
+		return s.toString();
 	}
 }

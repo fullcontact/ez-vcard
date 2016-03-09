@@ -16,13 +16,13 @@ import ezvcard.VCardVersion;
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -36,7 +36,7 @@ import ezvcard.VCardVersion;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -95,6 +95,25 @@ public class VCardRawReaderTest {
 	}
 
 	@Test
+	public void groupWithEscapes() throws Throwable {
+		String vcard = "FOO\\NBAR.NOTE:This is a note.\n" +
+			"GROUP.NOTE:Another";
+		VCardRawReader reader = create(vcard);
+
+		VCardRawLine expected = line("NOTE").group("FOO\\NBAR")
+			.value("This is a note.").build();
+		VCardRawLine actual = reader.readLine();
+		assertEquals(expected, actual);
+
+		expected = line("NOTE").group("GROUP")
+			.value("Another").build();
+		actual = reader.readLine();
+		assertEquals(expected, actual);
+
+		assertNull(reader.readLine());
+	}
+
+	@Test
 	public void nameless_parameters() throws Throwable {
 		String vcard = "ADR;WOrK;dOM:;;123 Main Str;Austin;TX;12345;US";
 		VCardRawReader reader = create(vcard);
@@ -111,7 +130,7 @@ public class VCardRawReaderTest {
 		//2.1 (removes)
 		{
 			//@formatter:off
-			String vcard = 
+			String vcard =
 			"VERSION:2.1\r\n" +
 			"ADR;TYPE\t= WOrK;TYPE \t=  dOM:;;123 Main Str;Austin;TX;12345;US";
 			//@formatter:on
@@ -128,7 +147,7 @@ public class VCardRawReaderTest {
 		//3.0 (keeps)
 		{
 			//@formatter:off
-			String vcard = 
+			String vcard =
 			"VERSION:3.0\r\n" +
 			"ADR;TYPE\t= WOrK;TYPE \t=  dOM:;;123 Main Str;Austin;TX;12345;US";
 			//@formatter:on
@@ -145,7 +164,7 @@ public class VCardRawReaderTest {
 		//4.0 (keeps)
 		{
 			//@formatter:off
-			String vcard = 
+			String vcard =
 			"VERSION:4.0\r\n" +
 			"ADR;TYPE\t= WOrK;TYPE \t=  dOM:;;123 Main Str;Austin;TX;12345;US";
 			//@formatter:on
@@ -165,7 +184,7 @@ public class VCardRawReaderTest {
 		//2.1 (doesn't recognize them)
 		{
 			//@formatter:off
-			String vcard = 
+			String vcard =
 			"VERSION:2.1\r\n" +
 			"ADR;TYPE=dom,\"foo,bar\\;baz\",work,foo=bar;PREF=1:;;123 Main Str;Austin;TX;12345;US";
 			//@formatter:on
@@ -182,7 +201,7 @@ public class VCardRawReaderTest {
 		//3.0
 		{
 			//@formatter:off
-			String vcard = 
+			String vcard =
 			"VERSION:3.0\r\n" +
 			"ADR;TYPE=dom,\"foo,bar;baz\",work,foo=bar;PREF=1:;;123 Main Str;Austin;TX;12345;US";
 			//@formatter:on
@@ -199,7 +218,7 @@ public class VCardRawReaderTest {
 		//4.0
 		{
 			//@formatter:off
-			String vcard = 
+			String vcard =
 			"VERSION:4.0\r\n" +
 			"ADR;TYPE=dom,\"foo,bar;baz\",work,foo=bar;PREF=1:;;123 Main Str;Austin;TX;12345;US";
 			//@formatter:on
@@ -230,7 +249,7 @@ public class VCardRawReaderTest {
 			//a: caret that doesn't escape anything
 			//b: backslash-escaped backslash
 			//@formatter:off
-			String vcard = 
+			String vcard =
 			"VERSION:2.1\r\n" +
 			//          1    2     2     3        4     5            6        7  8       8   9   9  b      a
 			"ADR;LABEL=1\\23 ^^Main^^ St.^nSection\\; 12^NBuilding 20\\nApt 10\\N^'Austin^', \"TX\" \\\\123^45:;;123 Main Str;Austin;TX;12345;US";
@@ -260,7 +279,7 @@ public class VCardRawReaderTest {
 			//a: caret that doesn't escape anything
 			//b: backslash-escaped backslash
 			//@formatter:off
-			String vcard = 
+			String vcard =
 			"VERSION:2.1\r\n" +
 			//          1    2     2     3        4     5            6        7  8       8   9   9         a
 			"ADR;LABEL=1\\23 ^^Main^^ St.^nSection\\; 12^NBuilding 20\\nApt 10\\N^'Austin^', \"TX\" \\\\123^45:;;123 Main Str;Austin;TX;12345;US";
@@ -290,7 +309,7 @@ public class VCardRawReaderTest {
 			//9: caret that doesn't escape anything
 			//a: backslash-escaped backslash
 			//@formatter:off
-			String vcard = 
+			String vcard =
 			"VERSION:3.0\r\n" +
 			//         0  1    2     2     3        0   4            5        6  7       7 0 8     8    a      9  0
 			"ADR;LABEL=\"1\\23 ^^Main^^ St.^nSection; 12^NBuilding 20\\nApt 10\\N^'Austin^', \\\"TX\\\" \\\\123^45\":;;123 Main Str;Austin;TX;12345;US";
@@ -320,7 +339,7 @@ public class VCardRawReaderTest {
 			//9: caret that doesn't escape anything
 			//a: backslash-escaped backslash
 			//@formatter:off
-			String vcard = 
+			String vcard =
 			"VERSION:3.0\r\n" +
 			//         0  1    2     2     3        0   4            5        6  7       7 0 8     8    a      9  0
 			"ADR;LABEL=\"1\\23 ^^Main^^ St.^nSection; 12^NBuilding 20\\nApt 10\\N^'Austin^', \\\"TX\\\" \\\\123^45\":;;123 Main Str;Austin;TX;12345;US";
@@ -350,7 +369,7 @@ public class VCardRawReaderTest {
 			//9: caret that doesn't escape anything
 			//a: backslash-escaped backslash
 			//@formatter:off
-			String vcard = 
+			String vcard =
 			"VERSION:4.0\r\n" +
 			//         0  1    2     2     3        0   4            5        6  7       7 0 8     8    a      9  0
 			"ADR;LABEL=\"1\\23 ^^Main^^ St.^nSection; 12^NBuilding 20\\nApt 10\\N^'Austin^', \\\"TX\\\" \\\\123^45\":;;123 Main Str;Austin;TX;12345;US";
@@ -380,7 +399,7 @@ public class VCardRawReaderTest {
 			//9: caret that doesn't escape anything
 			//a: backslash-escaped backslash
 			//@formatter:off
-			String vcard = 
+			String vcard =
 			"VERSION:4.0\r\n" +
 			//         0  1    2     2     3        0   4            5        6  7       7 0 8     8    a      9  0
 			"ADR;LABEL=\"1\\23 ^^Main^^ St.^nSection; 12^NBuilding 20\\nApt 10\\N^'Austin^', \\\"TX\\\" \\\\123^45\":;;123 Main Str;Austin;TX;12345;US";
@@ -557,7 +576,7 @@ public class VCardRawReaderTest {
 	public void line_unfolding_quoted_printable() throws Throwable {
 		//@formatter:off
 		String vcard =
-		
+
 		//one line
 		"LABEL;HOME;ENCODING=QUOTED-PRINTABLE:Silicon Alley 5\r\n" +
 
@@ -607,28 +626,28 @@ public class VCardRawReaderTest {
 			.value("Silicon Alley 5")
 			.build(),
 		reader.readLine());
-		
+
 		assertEquals(line("LABEL")
 			.param(null, "HOME")
 			.param(null, "QUOTED-PRINTABLE")
 			.value("Silicon Alley 5,=0D=0ANew York, New York  12345")
 			.build(),
 		reader.readLine());
-		
+
 		assertEquals(line("LABEL")
 			.param(null, "HOME")
 			.param(null, "QUOTED-PRINTABLE")
 			.value("Silicon Alley 5,=0D=0ANew York, New York  12345=0D=0A")
 			.build(),
 		reader.readLine());
-		
+
 		assertEquals(line("LABEL")
 			.param(null, "HOME")
 			.param(null, "QUOTED-PRINTABLE")
 			.value("Silicon Alley 5,=0D=0ANew York, New York  12345")
 			.build(),
 		reader.readLine());
-		
+
 		assertEquals(line("LABEL")
 			.param(null, "HOME")
 			.param("ENCODING", "QUOTED-PRINTABLE")
@@ -642,14 +661,14 @@ public class VCardRawReaderTest {
 			.value("Silicon Alley 5,=0D=0ANew York, New York  12345=0D=0AUSA=0D=0A4th line")
 			.build(),
 		reader.readLine());
-		
+
 		assertEquals(line("LABEL")
 			.param(null, "HOME")
 			.param("ENCODING", "QUOTED-PRINTABLE")
 			.value("Silicon Alley 5,=0D=0ANew York, New York  12345=0D=0A USA")
 			.build(),
 		reader.readLine());
-		
+
 		assertEquals(line("LABEL")
 			.param(null, "HOME")
 			.param("ENCODING", "QUOTED-PRINTABLE")
