@@ -1,19 +1,20 @@
 package ezvcard.property;
 
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.Warning;
+import ezvcard.parameter.Pid;
 import ezvcard.parameter.TelephoneType;
 import ezvcard.util.TelUri;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -55,14 +56,14 @@ import lombok.ToString;
  * 
  * //text
  * Telephone tel = new Telephone(&quot;(123) 555-6789&quot;);
- * tel.addType(TelephoneType.HOME);
+ * tel.getTypes().add(TelephoneType.HOME);
  * tel.setPref(2); //the second-most preferred
  * vcard.addTelephoneNumber(tel);
  * 
  * //URI (vCard version 4.0 only)
  * TelUri uri = new TelUri.Builder(&quot;+1-800-555-9876&quot;).extension(&quot;111&quot;).build();
  * tel = new Telephone(uri);
- * tel.addType(TelephoneType.WORK);
+ * tel.getTypes().add(TelephoneType.WORK);
  * tel.setPref(1); //the most preferred
  * vcard.addTelephoneNumber(tel);
  * </pre>
@@ -74,6 +75,9 @@ import lombok.ToString;
  * <b>Supported versions:</b> {@code 2.1, 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-34">RFC 6350 p.34</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-14">RFC 2426 p.14</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.13</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -95,6 +99,16 @@ public class Telephone extends VCardProperty implements HasAltId {
 	 */
 	public Telephone(TelUri uri) {
 		setUri(uri);
+	}
+
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Telephone(Telephone original) {
+		super(original);
+		text = original.text;
+		uri = original.uri;
 	}
 
 	/**
@@ -138,47 +152,22 @@ public class Telephone extends VCardProperty implements HasAltId {
 	}
 
 	/**
-	 * Gets all the TYPE parameters.
-	 * @return the TYPE parameters or empty set if there are none
+	 * Gets the list that stores this property's telephone types (TYPE
+	 * parameters).
+	 * @return the telephone types (e.g. "HOME", "WORK") (this list is mutable)
 	 */
-	public Set<TelephoneType> getTypes() {
-		Set<String> values = parameters.getTypes();
-		Set<TelephoneType> types = new HashSet<TelephoneType>(values.size());
-		for (String value : values) {
-			types.add(TelephoneType.get(value));
-		}
-		return types;
-	}
-
-	/**
-	 * Adds a TYPE parameter.
-	 * @param type the TYPE parameter to add
-	 */
-	public void addType(TelephoneType type) {
-		parameters.addType(type.getValue());
-	}
-
-	/**
-	 * Removes a TYPE parameter.
-	 * @param type the TYPE parameter to remove
-	 */
-	public void removeType(TelephoneType type) {
-		parameters.removeType(type.getValue());
+	public List<TelephoneType> getTypes() {
+		return parameters.new TypeParameterList<TelephoneType>() {
+			@Override
+			protected TelephoneType _asObject(String value) {
+				return TelephoneType.get(value);
+			}
+		};
 	}
 
 	@Override
-	public List<Integer[]> getPids() {
+	public List<Pid> getPids() {
 		return super.getPids();
-	}
-
-	@Override
-	public void addPid(int localId, int clientPidMapRef) {
-		super.addPid(localId, clientPidMapRef);
-	}
-
-	@Override
-	public void removePids() {
-		super.removePids();
 	}
 
 	@Override
@@ -217,9 +206,45 @@ public class Telephone extends VCardProperty implements HasAltId {
 				continue;
 			}
 
-			if (!type.isSupported(version)) {
+			if (!type.isSupportedBy(version)) {
 				warnings.add(new Warning(9, type.getValue()));
 			}
 		}
+	}
+
+	@Override
+	protected Map<String, Object> toStringValues() {
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put("uri", uri);
+		values.put("text", text);
+		return values;
+	}
+
+	@Override
+	public Telephone copy() {
+		return new Telephone(this);
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((text == null) ? 0 : text.hashCode());
+		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!super.equals(obj)) return false;
+		Telephone other = (Telephone) obj;
+		if (text == null) {
+			if (other.text != null) return false;
+		} else if (!text.equals(other.text)) return false;
+		if (uri == null) {
+			if (other.uri != null) return false;
+		} else if (!uri.equals(other.uri)) return false;
+		return true;
 	}
 }

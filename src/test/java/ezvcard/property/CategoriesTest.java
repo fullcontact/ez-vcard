@@ -1,13 +1,13 @@
 package ezvcard.property;
 
-import static ezvcard.util.TestUtils.assertValidate;
+import static ezvcard.property.PropertySensei.assertValidate;
 
 import org.junit.Test;
 
 import ezvcard.VCardVersion;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@ public class CategoriesTest {
 		assertValidate(empty).versions(VCardVersion.V3_0, VCardVersion.V4_0).run(8);
 
 		Categories withValue = new Categories();
-		withValue.addValue("one");
+		withValue.getValues().add("one");
 		assertValidate(withValue).versions(VCardVersion.V2_1).run(2);
 		assertValidate(withValue).versions(VCardVersion.V3_0, VCardVersion.V4_0).run();
 	}

@@ -8,6 +8,7 @@ import ezvcard.VCardVersion;
 import ezvcard.io.CannotParseException;
 import ezvcard.io.html.HCardElement;
 import ezvcard.io.json.JCardValue;
+import ezvcard.io.text.WriteContext;
 import ezvcard.io.xml.XCardElement;
 import ezvcard.parameter.Encoding;
 import ezvcard.parameter.MediaTypeParameter;
@@ -17,7 +18,7 @@ import ezvcard.util.DataUri;
 import ezvcard.util.org.apache.commons.codec.binary.Base64;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -139,8 +140,8 @@ public abstract class BinaryPropertyScribe<T extends BinaryProperty<U>, U extend
 	}
 
 	@Override
-	protected String _writeText(T property, VCardVersion version) {
-		return write(property, version);
+	protected String _writeText(T property, WriteContext context) {
+		return write(property, context.getVersion());
 	}
 
 	@Override
@@ -177,7 +178,7 @@ public abstract class BinaryPropertyScribe<T extends BinaryProperty<U>, U extend
 		}
 
 		try {
-			DataUri uri = new DataUri(data);
+			DataUri uri = DataUri.parse(data);
 			U mediaType = _mediaTypeFromMediaTypeParameter(uri.getContentType());
 
 			return _newInstance(uri.getData(), mediaType);
@@ -214,6 +215,8 @@ public abstract class BinaryPropertyScribe<T extends BinaryProperty<U>, U extend
 	 * @param version the version of the vCard
 	 * @param warnings the warnings
 	 * @param contentType the content type of the resource of null if unknown
+	 * @return the unmarshalled property object or null if it cannot be
+	 * unmarshalled
 	 */
 	protected T cannotUnmarshalValue(String value, VCardVersion version, List<String> warnings, U contentType) {
 		switch (version) {
@@ -308,7 +311,7 @@ public abstract class BinaryPropertyScribe<T extends BinaryProperty<U>, U extend
 		case V4_0:
 			try {
 				//parse as data URI
-				DataUri uri = new DataUri(value);
+				DataUri uri = DataUri.parse(value);
 				contentType = _mediaTypeFromMediaTypeParameter(uri.getContentType());
 				return _newInstance(uri.getData(), contentType);
 			} catch (IllegalArgumentException e) {

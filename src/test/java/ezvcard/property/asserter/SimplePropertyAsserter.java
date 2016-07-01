@@ -7,7 +7,7 @@ import java.util.List;
 import ezvcard.property.SimpleProperty;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -42,8 +42,8 @@ import ezvcard.property.SimpleProperty;
 public class SimplePropertyAsserter<T extends SimpleProperty> extends PropertyAsserter<SimplePropertyAsserter<T>, T> {
 	private Object value;
 
-	public SimplePropertyAsserter(List<T> properties) {
-		super(properties);
+	public SimplePropertyAsserter(List<T> properties, VCardAsserter asserter) {
+		super(properties, asserter);
 	}
 
 	public SimplePropertyAsserter<T> value(Object value) {

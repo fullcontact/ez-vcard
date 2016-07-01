@@ -6,12 +6,13 @@ import ezvcard.VCardDataType;
 import ezvcard.VCardVersion;
 import ezvcard.io.html.HCardElement;
 import ezvcard.io.json.JCardValue;
+import ezvcard.io.text.WriteContext;
 import ezvcard.io.xml.XCardElement;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.StructuredName;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -50,8 +51,16 @@ public class StructuredNameScribe extends VCardPropertyScribe<StructuredName> {
 	}
 
 	@Override
-	protected String _writeText(StructuredName property, VCardVersion version) {
-		return structured(property.getFamily(), property.getGiven(), property.getAdditional(), property.getPrefixes(), property.getSuffixes());
+	protected String _writeText(StructuredName property, WriteContext context) {
+		//@formatter:off
+		return structured(context.isIncludeTrailingSemicolons(), new Object[] {
+			property.getFamily(),
+			property.getGiven(),
+			property.getAdditionalNames(),
+			property.getPrefixes(),
+			property.getSuffixes()
+		});
+		//@formatter:on
 	}
 
 	@Override
@@ -61,7 +70,7 @@ public class StructuredNameScribe extends VCardPropertyScribe<StructuredName> {
 
 		property.setFamily(it.nextString());
 		property.setGiven(it.nextString());
-		property.getAdditional().addAll(it.nextComponent());
+		property.getAdditionalNames().addAll(it.nextComponent());
 		property.getPrefixes().addAll(it.nextComponent());
 		property.getSuffixes().addAll(it.nextComponent());
 
@@ -72,7 +81,7 @@ public class StructuredNameScribe extends VCardPropertyScribe<StructuredName> {
 	protected void _writeXml(StructuredName property, XCardElement parent) {
 		parent.append("surname", property.getFamily()); //the XML element still needs to be printed if value == null
 		parent.append("given", property.getGiven());
-		parent.append("additional", property.getAdditional());
+		parent.append("additional", property.getAdditionalNames());
 		parent.append("prefix", property.getPrefixes());
 		parent.append("suffix", property.getSuffixes());
 	}
@@ -83,7 +92,7 @@ public class StructuredNameScribe extends VCardPropertyScribe<StructuredName> {
 
 		property.setFamily(s(element.first("surname")));
 		property.setGiven(s(element.first("given")));
-		property.getAdditional().addAll(element.all("additional"));
+		property.getAdditionalNames().addAll(element.all("additional"));
 		property.getPrefixes().addAll(element.all("prefix"));
 		property.getSuffixes().addAll(element.all("suffix"));
 
@@ -100,7 +109,7 @@ public class StructuredNameScribe extends VCardPropertyScribe<StructuredName> {
 
 		property.setFamily(s(element.firstValue("family-name")));
 		property.setGiven(s(element.firstValue("given-name")));
-		property.getAdditional().addAll(element.allValues("additional-name"));
+		property.getAdditionalNames().addAll(element.allValues("additional-name"));
 		property.getPrefixes().addAll(element.allValues("honorific-prefix"));
 		property.getSuffixes().addAll(element.allValues("honorific-suffix"));
 
@@ -109,7 +118,7 @@ public class StructuredNameScribe extends VCardPropertyScribe<StructuredName> {
 
 	@Override
 	protected JCardValue _writeJson(StructuredName property) {
-		return JCardValue.structured(property.getFamily(), property.getGiven(), property.getAdditional(), property.getPrefixes(), property.getSuffixes());
+		return JCardValue.structured(property.getFamily(), property.getGiven(), property.getAdditionalNames(), property.getPrefixes(), property.getSuffixes());
 	}
 
 	@Override
@@ -119,7 +128,7 @@ public class StructuredNameScribe extends VCardPropertyScribe<StructuredName> {
 
 		property.setFamily(it.nextString());
 		property.setGiven(it.nextString());
-		property.getAdditional().addAll(it.nextComponent());
+		property.getAdditionalNames().addAll(it.nextComponent());
 		property.getPrefixes().addAll(it.nextComponent());
 		property.getSuffixes().addAll(it.nextComponent());
 

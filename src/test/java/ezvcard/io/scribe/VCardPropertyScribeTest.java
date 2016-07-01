@@ -24,12 +24,13 @@ import ezvcard.io.json.JCardValue;
 import ezvcard.io.scribe.Sensei.Check;
 import ezvcard.io.scribe.VCardPropertyScribe.SemiStructuredIterator;
 import ezvcard.io.scribe.VCardPropertyScribe.StructuredIterator;
+import ezvcard.io.text.WriteContext;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.VCardProperty;
 import ezvcard.util.DefaultTimezoneRule;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -60,7 +61,7 @@ public class VCardPropertyScribeTest {
 	@ClassRule
 	public static final DefaultTimezoneRule tzRule = new DefaultTimezoneRule(1, 0);
 
-	private final VCardPropertyMarshallerImpl scribe = new VCardPropertyMarshallerImpl();
+	private final VCardPropertyScribeImpl scribe = new VCardPropertyScribeImpl();
 	private final Sensei<TestProperty> sensei = new Sensei<TestProperty>(scribe);
 
 	private final Date datetime = date("2013-06-11 14:43:02");
@@ -311,6 +312,15 @@ public class VCardPropertyScribeTest {
 	}
 
 	@Test
+	public void structured_write_trailing_semicolons() {
+		String actual = VCardPropertyScribe.structured(false, new Object[] { "one", "two", Arrays.asList(), "", null, "three", Arrays.asList(), "", null });
+		assertEquals("one;two;;;;three", actual);
+
+		actual = VCardPropertyScribe.structured(true, new Object[] { "one", "two", Arrays.asList(), "", null, "three", Arrays.asList(), "", null });
+		assertEquals("one;two;;;;three;;;", actual);
+	}
+
+	@Test
 	public void dataType_default() {
 		TestProperty property = new TestProperty("value");
 		sensei.assertDataType(property).run(VCardDataType.TEXT);
@@ -318,7 +328,7 @@ public class VCardPropertyScribeTest {
 
 	@Test
 	public void dataType_custom() {
-		VCardPropertyMarshallerImpl scribe = new VCardPropertyMarshallerImpl() {
+		VCardPropertyScribeImpl scribe = new VCardPropertyScribeImpl() {
 			@Override
 			protected VCardDataType _dataType(TestProperty property, VCardVersion version) {
 				return VCardDataType.URI;
@@ -330,7 +340,7 @@ public class VCardPropertyScribeTest {
 
 	@Test
 	public void prepareParameters() {
-		VCardPropertyMarshallerImpl m = new VCardPropertyMarshallerImpl() {
+		VCardPropertyScribeImpl m = new VCardPropertyScribeImpl() {
 			@Override
 			protected void _prepareParameters(TestProperty property, VCardParameters copy, VCardVersion version, VCard vcard) {
 				copy.put("PARAM", "value");
@@ -414,6 +424,18 @@ public class VCardPropertyScribeTest {
 				assertEquals(null, property.parsedDataType);
 			}
 		});
+		sensei.assertParseXml("<one xmlns=\"http://example.com\">1</one><unknown>value</unknown>").warnings(1).run(new Check<TestProperty>() {
+			public void check(TestProperty property) {
+				assertEquals("value", property.value);
+				assertEquals(null, property.parsedDataType);
+			}
+		});
+		sensei.assertParseXml("<unknown />").warnings(1).run(new Check<TestProperty>() {
+			public void check(TestProperty property) {
+				assertEquals("", property.value);
+				assertEquals(null, property.parsedDataType);
+			}
+		});
 	}
 
 	@Test
@@ -426,7 +448,7 @@ public class VCardPropertyScribeTest {
 	@Test
 	public void getQName_custom() {
 		QName expected = new QName("http://example.com", "foo");
-		VCardPropertyMarshallerImpl m = new VCardPropertyMarshallerImpl(expected);
+		VCardPropertyScribeImpl m = new VCardPropertyScribeImpl(expected);
 		QName actual = m.getQName();
 		assertEquals(expected, actual);
 	}
@@ -479,12 +501,12 @@ public class VCardPropertyScribeTest {
 		});
 	}
 
-	private class VCardPropertyMarshallerImpl extends VCardPropertyScribe<TestProperty> {
-		private VCardPropertyMarshallerImpl() {
+	private class VCardPropertyScribeImpl extends VCardPropertyScribe<TestProperty> {
+		private VCardPropertyScribeImpl() {
 			super(TestProperty.class, "TEST");
 		}
 
-		private VCardPropertyMarshallerImpl(QName qname) {
+		private VCardPropertyScribeImpl(QName qname) {
 			super(TestProperty.class, "TEST", qname);
 		}
 
@@ -494,7 +516,7 @@ public class VCardPropertyScribeTest {
 		}
 
 		@Override
-		protected String _writeText(TestProperty property, VCardVersion version) {
+		protected String _writeText(TestProperty property, WriteContext context) {
 			return property.value;
 		}
 

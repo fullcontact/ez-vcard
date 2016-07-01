@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -89,6 +89,9 @@ import lombok.ToString;
  * <b>Supported versions:</b> {@code 2.1, 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-40">RFC 6350 p.40</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-18">RFC 2426 p.18</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.17</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -131,6 +134,14 @@ public class Logo extends ImageProperty {
 		super(file, type);
 	}
 
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Logo(Logo original) {
+		super(original);
+	}
+
 	@Override
 	public String getLanguage() {
 		return super.getLanguage();
@@ -139,5 +150,10 @@ public class Logo extends ImageProperty {
 	@Override
 	public void setLanguage(String language) {
 		super.setLanguage(language);
+	}
+
+	@Override
+	public Logo copy() {
+		return new Logo(this);
 	}
 }

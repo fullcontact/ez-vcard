@@ -47,7 +47,7 @@ import ezvcard.util.UtcOffset;
 import freemarker.template.TemplateException;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -147,7 +147,7 @@ public class HCardPageTest {
 			n.setSortAs("Smith");
 			vcard.setStructuredName(n);
 			Organization org = new Organization();
-			org.setSortAs("Jones");
+			org.getSortAs().add("Jones");
 			vcard.setOrganization(org);
 			vcard.setSortString(new SortString("Doe"));
 			Document document = generate(vcard);
@@ -164,7 +164,7 @@ public class HCardPageTest {
 			n.setSortAs("Smith");
 			vcard.setStructuredName(n);
 			Organization org = new Organization();
-			org.setSortAs("Jones");
+			org.getSortAs().add("Jones");
 			vcard.setOrganization(org);
 			Document document = generate(vcard);
 
@@ -177,7 +177,7 @@ public class HCardPageTest {
 		{
 			VCard vcard = new VCard();
 			Organization org = new Organization();
-			org.setSortAs("Jones");
+			org.getSortAs().add("Jones");
 			vcard.setOrganization(org);
 			Document document = generate(vcard);
 
@@ -193,7 +193,7 @@ public class HCardPageTest {
 		{
 			VCard vcard = new VCard();
 			Organization org = new Organization();
-			org.addValue("Google");
+			org.getValues().add("Google");
 			vcard.setOrganization(org);
 			Document document = generate(vcard);
 
@@ -205,8 +205,8 @@ public class HCardPageTest {
 		{
 			VCard vcard = new VCard();
 			Organization org = new Organization();
-			org.addValue("Google");
-			org.addValue("GMail Team");
+			org.getValues().add("Google");
+			org.getValues().add("GMail Team");
 			vcard.setOrganization(org);
 			Document document = generate(vcard);
 
@@ -279,7 +279,7 @@ public class HCardPageTest {
 			StructuredName a = actual.getStructuredName();
 			assertEquals(e.getFamily(), a.getFamily());
 			assertEquals(e.getGiven(), a.getGiven());
-			assertEquals(e.getAdditional(), a.getAdditional());
+			assertEquals(e.getAdditionalNames(), a.getAdditionalNames());
 			assertEquals(e.getPrefixes(), a.getPrefixes());
 			assertEquals(e.getSuffixes(), a.getSuffixes());
 			assertTrue(a.getSortAs().isEmpty());
@@ -385,11 +385,11 @@ public class HCardPageTest {
 		StructuredName n = new StructuredName();
 		n.setFamily("Claus");
 		n.setGiven("Santa");
-		n.addAdditional("Saint Nicholas");
-		n.addAdditional("Father Christmas");
-		n.addPrefix("Mr");
-		n.addPrefix("Dr");
-		n.addSuffix("M.D.");
+		n.getAdditionalNames().add("Saint Nicholas");
+		n.getAdditionalNames().add("Father Christmas");
+		n.getPrefixes().add("Mr");
+		n.getPrefixes().add("Dr");
+		n.getSuffixes().add("M.D.");
 		n.setSortAs("Claus");
 		vcard.setStructuredName(n);
 
@@ -414,7 +414,7 @@ public class HCardPageTest {
 		vcard.addTelephoneNumber(tel);
 
 		tel = new Telephone(new TelUri.Builder("+1-555-333-4444").build());
-		tel.addType(TelephoneType.WORK);
+		tel.getTypes().add(TelephoneType.WORK);
 		vcard.addTelephoneNumber(tel);
 
 		vcard.addTelephoneNumber("(555) 111-2222", TelephoneType.HOME, TelephoneType.VOICE, TelephoneType.PREF);
@@ -427,7 +427,7 @@ public class HCardPageTest {
 		adr.setPostalCode("12345");
 		adr.setCountry("USA");
 		adr.setLabel("123 Main St." + NEWLINE + "Austin TX, 12345" + NEWLINE + "USA");
-		adr.addType(AddressType.HOME);
+		adr.getTypes().add(AddressType.HOME);
 		vcard.addAddress(adr);
 
 		adr = new Address();
@@ -437,8 +437,8 @@ public class HCardPageTest {
 		adr.setRegion("NY");
 		adr.setPostalCode("11111");
 		adr.setCountry("USA");
-		adr.addType(AddressType.PREF);
-		adr.addType(AddressType.WORK);
+		adr.getTypes().add(AddressType.PREF);
+		adr.getTypes().add(AddressType.WORK);
 		vcard.addAddress(adr);
 
 		vcard.setOrganization("Google", "GMail");

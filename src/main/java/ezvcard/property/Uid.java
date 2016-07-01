@@ -6,7 +6,7 @@ import lombok.ToString;
 import java.util.UUID;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -61,6 +61,9 @@ import java.util.UUID;
  * <b>Supported versions:</b> {@code 2.1, 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-46">RFC 6350 p.46</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-24">RFC 2426 p.24</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.21</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -74,11 +77,24 @@ public class Uid extends UriProperty {
 	}
 
 	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Uid(Uid original) {
+		super(original);
+	}
+
+	/**
 	 * Creates a UID property that contains a random UUID URI.
 	 * @return the property
 	 */
 	public static Uid random() {
 		String uuid = UUID.randomUUID().toString();
 		return new Uid("urn:uuid:" + uuid);
+	}
+
+	@Override
+	public Uid copy() {
+		return new Uid(this);
 	}
 }

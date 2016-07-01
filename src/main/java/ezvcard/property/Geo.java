@@ -1,16 +1,19 @@
 package ezvcard.property;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.Warning;
+import ezvcard.parameter.Pid;
 import ezvcard.util.GeoUri;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -46,9 +49,10 @@ import lombok.ToString;
  * </p>
  * 
  * <table class="simpleTable">
+ * <caption>{@link Geo} meanings by {@link Kind} value</caption>
  * <tr>
- * <th>KIND value</th>
- * <th>GEO meaning</th>
+ * <th>{@link Kind} value</th>
+ * <th>{@link Geo} meaning</th>
  * </tr>
  * <tr>
  * <td>"individual"</td>
@@ -86,6 +90,9 @@ import lombok.ToString;
  * <b>Supported versions:</b> {@code 2.1, 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-38">RFC 6350 p.38</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-16">RFC 2426 p.16</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.16</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -107,6 +114,15 @@ public class Geo extends VCardProperty implements HasAltId {
 	 */
 	public Geo(GeoUri uri) {
 		this.uri = uri;
+	}
+
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Geo(Geo original) {
+		super(original);
+		uri = original.uri;
 	}
 
 	/**
@@ -222,18 +238,8 @@ public class Geo extends VCardProperty implements HasAltId {
 	}
 
 	@Override
-	public List<Integer[]> getPids() {
+	public List<Pid> getPids() {
 		return super.getPids();
-	}
-
-	@Override
-	public void addPid(int localId, int clientPidMapRef) {
-		super.addPid(localId, clientPidMapRef);
-	}
-
-	@Override
-	public void removePids() {
-		super.removePids();
 	}
 
 	@Override
@@ -264,5 +270,36 @@ public class Geo extends VCardProperty implements HasAltId {
 		if (getLongitude() == null) {
 			warnings.add(new Warning(14));
 		}
+	}
+
+	@Override
+	protected Map<String, Object> toStringValues() {
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put("uri", uri);
+		return values;
+	}
+
+	@Override
+	public Geo copy() {
+		return new Geo(this);
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!super.equals(obj)) return false;
+		Geo other = (Geo) obj;
+		if (uri == null) {
+			if (other.uri != null) return false;
+		} else if (!uri.equals(other.uri)) return false;
+		return true;
 	}
 }

@@ -1,13 +1,13 @@
 package ezvcard.util;
 
-import java.net.URI;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 
+import ezvcard.Messages;
 import ezvcard.util.org.apache.commons.codec.binary.Base64;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ import ezvcard.util.org.apache.commons.codec.binary.Base64;
 
 /**
  * <p>
- * Represents a URI for encoding binary data.
+ * Represents a data URI.
  * </p>
  * <p>
  * Example: {@code data:image/jpeg;base64,[base64 string]}
@@ -45,62 +45,225 @@ import ezvcard.util.org.apache.commons.codec.binary.Base64;
  * @author Michael Angstadt
  */
 public final class DataUri {
-	private static final Pattern regex = Pattern.compile("^data:(.*?);base64,(.*)", Pattern.CASE_INSENSITIVE);
 	private final byte[] data;
+	private final String text;
 	private final String contentType;
 
 	/**
 	 * Creates a data URI.
-	 * @param contentType the content type (e.g. "image/jpeg")
-	 * @param data the binary data
+	 * @param contentType the content type of the data (e.g. "image/png")
+	 * @param data the data
 	 */
 	public DataUri(String contentType, byte[] data) {
-		this.contentType = contentType;
+		this(contentType, data, null);
+	}
+
+	/**
+	 * Creates a data URI.
+	 * @param contentType the content type of the text (e.g. "text/html")
+	 * @param text the text
+	 */
+	public DataUri(String contentType, String text) {
+		this(contentType, null, text);
+	}
+
+	/**
+	 * Creates a data URI with a content type of "text/plain".
+	 * @param text the text
+	 */
+	public DataUri(String text) {
+		this("text/plain", text);
+	}
+
+	/**
+	 * Copies a data URI.
+	 * @param original the data URI to copy
+	 */
+	public DataUri(DataUri original) {
+		this(original.contentType, (original.data == null) ? null : Arrays.copyOf(original.data, original.data.length), original.text);
+	}
+
+	private DataUri(String contentType, byte[] data, String text) {
+		this.contentType = (contentType == null) ? "" : contentType.toLowerCase();
 		this.data = data;
+		this.text = text;
 	}
 
 	/**
 	 * Parses a data URI string.
-	 * @param uri the data URI to parse (e.g.
-	 * "data:image/jpeg;base64,[base64 string]")
-	 * @throws IllegalArgumentException if the given URI is not a valid data URI
+	 * @param uri the URI string (e.g. "data:image/jpeg;base64,[base64 string]")
+	 * @return the parsed data URI
+	 * @throws IllegalArgumentException if the string is not a valid data URI or
+	 * it cannot be parsed
 	 */
-	public DataUri(String uri) {
-		Matcher m = regex.matcher(uri);
-		if (!m.find()) {
-			throw new IllegalArgumentException("Invalid data URI: " + uri);
+	public static DataUri parse(String uri) {
+		//Syntax: data:[<media type>][;charset=<character set>][;base64],<data>
+
+		String scheme = "data:";
+		if (uri.length() < scheme.length() || !uri.substring(0, scheme.length()).equalsIgnoreCase(scheme)) {
+			//not a data URI
+			throw Messages.INSTANCE.getIllegalArgumentException(18, scheme);
 		}
 
-		contentType = m.group(1);
-		data = Base64.decodeBase64(m.group(2));
+		String contentType = null;
+		String charset = null;
+		boolean base64 = false;
+		String dataStr = null;
+		int tokenStart = scheme.length();
+		for (int i = scheme.length(); i < uri.length(); i++) {
+			char c = uri.charAt(i);
+
+			if (c == ';') {
+				String token = uri.substring(tokenStart, i);
+				if (contentType == null) {
+					contentType = token.toLowerCase();
+				} else {
+					if (token.toLowerCase().startsWith("charset=")) {
+						int equals = token.indexOf('=');
+						charset = token.substring(equals + 1);
+					} else if ("base64".equalsIgnoreCase(token)) {
+						base64 = true;
+					}
+				}
+				tokenStart = i + 1;
+				continue;
+			}
+
+			if (c == ',') {
+				String token = uri.substring(tokenStart, i);
+				if (contentType == null) {
+					contentType = token.toLowerCase();
+				} else {
+					if (token.toLowerCase().startsWith("charset=")) {
+						int equals = token.indexOf('=');
+						charset = token.substring(equals + 1);
+					} else if ("base64".equalsIgnoreCase(token)) {
+						base64 = true;
+					}
+				}
+
+				dataStr = uri.substring(i + 1);
+				break;
+			}
+		}
+
+		if (dataStr == null) {
+			throw Messages.INSTANCE.getIllegalArgumentException(20);
+		}
+
+		String text = null;
+		byte[] data = null;
+		if (base64) {
+			dataStr = dataStr.replaceAll("\\s", "");
+			data = Base64.decodeBase64(dataStr);
+			if (charset != null) {
+				try {
+					text = new String(data, charset);
+				} catch (UnsupportedEncodingException e) {
+					throw new IllegalArgumentException(Messages.INSTANCE.getExceptionMessage(43, charset), e);
+				}
+				data = null;
+			}
+		} else {
+			text = dataStr;
+		}
+
+		return new DataUri(contentType, data, text);
 	}
 
 	/**
 	 * Gets the binary data.
-	 * @return the binary data
+	 * @return the binary data or null if the value was text
 	 */
 	public byte[] getData() {
 		return data;
 	}
 
 	/**
-	 * Sets the content type.
-	 * @return the content type (e.g. "image/jpeg")
+	 * Gets the content type.
+	 * @return the content type (e.g. "image/png")
 	 */
 	public String getContentType() {
 		return contentType;
 	}
 
 	/**
-	 * Creates a {@link URI} object from this data URI.
-	 * @return the {@link URI} object
+	 * Gets the text value.
+	 * @return the text value or null if the value was binary
 	 */
-	public URI toUri() {
-		return URI.create(toString());
+	public String getText() {
+		return text;
+	}
+
+	/**
+	 * Creates a data URI string.
+	 * @return the data URI (e.g. "data:image/jpeg;base64,[base64 string]")
+	 */
+	@Override
+	public String toString() {
+		return toString(null);
+	}
+
+	/**
+	 * Creates a data URI string.
+	 * @param charset only applicable if the data URI's value is text. Defines
+	 * the character set to encode the text in, or null not to specify a
+	 * character set
+	 * @return the data URI (e.g. "data:image/jpeg;base64,[base64 string]")
+	 * @throws IllegalArgumentException if the given character set is not
+	 * supported by this JVM
+	 */
+	public String toString(String charset) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("data:");
+		sb.append(contentType);
+
+		if (data != null) {
+			sb.append(";base64,");
+			sb.append(Base64.encodeBase64String(data));
+		} else if (text != null) {
+			if (charset == null) {
+				sb.append(',').append(text);
+			} else {
+				byte[] data;
+				try {
+					data = text.getBytes(charset);
+				} catch (UnsupportedEncodingException e) {
+					throw new IllegalArgumentException(Messages.INSTANCE.getExceptionMessage(44, charset), e);
+				}
+
+				sb.append(";charset=").append(charset);
+				sb.append(";base64,");
+				sb.append(Base64.encodeBase64String(data));
+			}
+		} else {
+			sb.append(',');
+		}
+
+		return sb.toString();
 	}
 
 	@Override
-	public String toString() {
-		return "data:" + contentType + ";base64," + Base64.encodeBase64String(data);
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + contentType.hashCode();
+		result = prime * result + Arrays.hashCode(data);
+		result = prime * result + ((text == null) ? 0 : text.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (obj == null) return false;
+		if (getClass() != obj.getClass()) return false;
+		DataUri other = (DataUri) obj;
+		if (!contentType.equals(other.contentType)) return false;
+		if (!Arrays.equals(data, other.data)) return false;
+		if (text == null) {
+			if (other.text != null) return false;
+		} else if (!text.equals(other.text)) return false;
+		return true;
 	}
 }

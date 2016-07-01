@@ -23,13 +23,14 @@ import ezvcard.io.SkipMeException;
 import ezvcard.io.html.HCardElement;
 import ezvcard.io.json.JCardValue;
 import ezvcard.io.scribe.VCardPropertyScribe.Result;
+import ezvcard.io.text.WriteContext;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.VCardProperty;
 import ezvcard.util.HtmlUtils;
 import ezvcard.util.XmlUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -54,7 +55,7 @@ import ezvcard.util.XmlUtils;
  */
 
 /**
- * Utility class used for unit testing property marshallers.
+ * Utility class used for unit testing property scribes.
  * @param <T> the property class
  * @author Michael Angstadt
  */
@@ -278,6 +279,7 @@ public class Sensei<T extends VCardProperty> {
 	public class WriteTextTest {
 		protected final T property;
 		private VCardVersion versions[] = VCardVersion.values();
+		private boolean includeTrailingSemicolons = false;
 
 		public WriteTextTest(T property) {
 			this.property = property;
@@ -294,6 +296,17 @@ public class Sensei<T extends VCardProperty> {
 		}
 
 		/**
+		 * Sets whether to include trailing semicolons for structured property
+		 * values whose list of values end with null or empty values
+		 * @param include true to include them, false not to (defaults to false)
+		 * @return this
+		 */
+		public WriteTextTest includeTrailingSemicolons(boolean include) {
+			includeTrailingSemicolons = include;
+			return this;
+		}
+
+		/**
 		 * Runs the test, expecting a {@link SkipMeException} to be thrown.
 		 */
 		public void skipMe() {
@@ -306,7 +319,7 @@ public class Sensei<T extends VCardProperty> {
 		 */
 		public void run(String expected) {
 			for (VCardVersion version : versions) {
-				String actual = scribe.writeText(property, version);
+				String actual = scribe.writeText(property, new WriteContext(version, null, includeTrailingSemicolons));
 				assertEquals("Version " + version, expected, actual);
 			}
 		}
@@ -314,7 +327,7 @@ public class Sensei<T extends VCardProperty> {
 		public void run(Class<? extends RuntimeException> expected) {
 			for (VCardVersion version : versions) {
 				try {
-					scribe.writeText(property, version);
+					scribe.writeText(property, new WriteContext(version, null, false));
 					fail("Expected " + expected.getSimpleName());
 				} catch (RuntimeException t) {
 					assertEquals("Expected " + expected.getSimpleName() + ", but was " + t.getClass().getSimpleName(), expected, t.getClass());
@@ -341,7 +354,7 @@ public class Sensei<T extends VCardProperty> {
 		 */
 		public void run(String expectedInnerXml) {
 			Document actual = createXCardElement();
-			scribe.writeXml(property, XmlUtils.getRootElement(actual));
+			scribe.writeXml(property, actual.getDocumentElement());
 
 			Document expected = createXCardElement(expectedInnerXml);
 
@@ -453,6 +466,19 @@ public class Sensei<T extends VCardProperty> {
 
 		/**
 		 * Runs the test.
+		 * @param expected the expected property. Expected and actual property
+		 * objects will be compared with the {@code equals()} method.
+		 */
+		public void run(final T expected) {
+			run(new Check<T>() {
+				public void check(T actual) {
+					assertEquals(expected, actual);
+				}
+			}, null);
+		}
+
+		/**
+		 * Runs the test.
 		 * @param check object for validating the parsed property object or null
 		 * not to validate the property
 		 * @param exception the exception that is expected to be thrown or null
@@ -542,7 +568,7 @@ public class Sensei<T extends VCardProperty> {
 		protected void run(Check<T> check, Class<? extends RuntimeException> exception) {
 			try {
 				Document document = createXCardElement(innerXml);
-				Element element = XmlUtils.getRootElement(document);
+				Element element = document.getDocumentElement();
 				Result<T> result = scribe.parseXml(element, parameters);
 
 				if (exception != null) {

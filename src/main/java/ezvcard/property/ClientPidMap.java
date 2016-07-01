@@ -1,10 +1,11 @@
 package ezvcard.property;
 
-import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 
+import ezvcard.SupportedVersions;
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.Warning;
@@ -12,17 +13,17 @@ import ezvcard.parameter.VCardParameters;
 import lombok.*;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -36,7 +37,7 @@ import lombok.*;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -48,7 +49,7 @@ import lombok.*;
  * 1 instance of it is allowed). It allows an individual property instance to be
  * uniquely identifiable.
  * </p>
- * 
+ *
  * <p>
  * This property, along with the PID parameter, is used during the
  * synchronization (merging) process of two versions of the same vCard. For
@@ -57,32 +58,32 @@ import lombok.*;
  * copies could be synchronized in order to merge all the changes into a single,
  * new vCard.
  * </p>
- * 
+ *
  * <p>
  * <b>Code sample</b>
  * </p>
- * 
+ *
  * <pre class="brush:java">
  * VCard vcard = new VCard();
- * 
+ *
  * Address adr = new Address();
  * adr.addPid(1, 1);
  * vcard.addAddress(adr);
- * 
+ *
  * Email email = vcard.addEmail(&quot;johndoe@hotmail.com&quot;);
  * emai.addPid(1, 1);
  * email = vcard.addEmail(&quot;jdoe@company.com&quot;);
  * email.addPid(2, 2);
- * 
+ *
  * //specify the URI to use
  * ClientPidMap clientpidmap = new ClientPidMap(1, &quot;urn:uuid:03a0e51f-d1aa-4385-8a53-e29025acd8af&quot;);
  * vcard.addClientPidMap(clientpidmap);
- * 
+ *
  * //or, generate a random URI
  * clientpidmap = ClientPidMap.random(2);
  * vcard.addClientPidMap(clientpidmap);
  * </pre>
- * 
+ *
  * <p>
  * <b>Property name:</b> {@code CLIENTPIDMAP}
  * </p>
@@ -90,9 +91,11 @@ import lombok.*;
  * <b>Supported versions:</b> {@code 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-47">RFC 6350 p.47</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
+@SupportedVersions(VCardVersion.V4_0)
 public class ClientPidMap extends VCardProperty {
 	private Integer pid;
 	private String uri;
@@ -108,6 +111,16 @@ public class ClientPidMap extends VCardProperty {
 	}
 
 	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public ClientPidMap(ClientPidMap original) {
+		super(original);
+		pid = original.pid;
+		uri = original.uri;
+	}
+
+	/**
 	 * Generates a CLIENTPIDMAP type that contains a random UID URI.
 	 * @param pid the PID
 	 * @return a CLIENTPIDMAP type with a random UID URI
@@ -117,16 +130,10 @@ public class ClientPidMap extends VCardProperty {
 		return new ClientPidMap(pid, "urn:uuid:" + uuid);
 	}
 
-	@Override
-	public Set<VCardVersion> _supportedVersions() {
-		return EnumSet.of(VCardVersion.V4_0);
-	}
-
 	/**
 	 * Gets the value that is used to link the URI in this property to the
 	 * property that the URI belongs to.
 	 * @return the PID
-	 * @see VCardParameters#getPids
 	 */
 	public Integer getPid() {
 		return pid;
@@ -136,7 +143,6 @@ public class ClientPidMap extends VCardProperty {
 	 * Gets the value that is used to link the URI in this property to the
 	 * property that the URI belongs to.
 	 * @param pid the PID
-	 * @see VCardParameters#getPids
 	 */
 	public void setPid(Integer pid) {
 		this.pid = pid;
@@ -163,5 +169,41 @@ public class ClientPidMap extends VCardProperty {
 		if (pid == null && uri == null) {
 			warnings.add(new Warning(8));
 		}
+	}
+
+	@Override
+	protected Map<String, Object> toStringValues() {
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put("pid", pid);
+		values.put("uri", uri);
+		return values;
+	}
+
+	@Override
+	public ClientPidMap copy() {
+		return new ClientPidMap(this);
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((pid == null) ? 0 : pid.hashCode());
+		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!super.equals(obj)) return false;
+		ClientPidMap other = (ClientPidMap) obj;
+		if (pid == null) {
+			if (other.pid != null) return false;
+		} else if (!pid.equals(other.pid)) return false;
+		if (uri == null) {
+			if (other.uri != null) return false;
+		} else if (!uri.equals(other.uri)) return false;
+		return true;
 	}
 }

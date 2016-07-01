@@ -7,6 +7,7 @@ import ezvcard.VCardVersion;
 import ezvcard.io.CannotParseException;
 import ezvcard.io.html.HCardElement;
 import ezvcard.io.json.JCardValue;
+import ezvcard.io.text.WriteContext;
 import ezvcard.io.xml.XCardElement;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.Geo;
@@ -14,7 +15,7 @@ import ezvcard.util.GeoUri;
 import ezvcard.util.VCardFloatFormatter;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -60,14 +61,14 @@ public class GeoScribe extends VCardPropertyScribe<Geo> {
 	}
 
 	@Override
-	protected String _writeText(Geo property, VCardVersion version) {
-		return write(property, version);
+	protected String _writeText(Geo property, WriteContext context) {
+		return write(property, context.getVersion());
 	}
 
 	@Override
 	protected Geo _parseText(String value, VCardDataType dataType, VCardVersion version, VCardParameters parameters, List<String> warnings) {
 		value = unescape(value);
-		return parse(value, version, warnings);
+		return parse(value, version);
 	}
 
 	@Override
@@ -79,7 +80,7 @@ public class GeoScribe extends VCardPropertyScribe<Geo> {
 	protected Geo _parseXml(XCardElement element, VCardParameters parameters, List<String> warnings) {
 		String value = element.first(VCardDataType.URI);
 		if (value != null) {
-			return parse(value, element.version(), warnings);
+			return parse(value, element.version());
 		}
 
 		throw missingXmlElements(VCardDataType.URI);
@@ -121,12 +122,12 @@ public class GeoScribe extends VCardPropertyScribe<Geo> {
 
 	@Override
 	protected Geo _parseJson(JCardValue value, VCardDataType dataType, VCardParameters parameters, List<String> warnings) {
-		return parse(value.asSingle(), VCardVersion.V4_0, warnings);
+		return parse(value.asSingle(), VCardVersion.V4_0);
 	}
 
-	private Geo parse(String value, VCardVersion version, List<String> warnings) {
+	private Geo parse(String value, VCardVersion version) {
 		if (value == null || value.length() == 0) {
-			return new Geo(null);
+			return new Geo((GeoUri) null);
 		}
 
 		switch (version) {

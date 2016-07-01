@@ -8,11 +8,10 @@ import org.junit.Test;
 
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
-import ezvcard.io.scribe.Sensei.Check;
 import ezvcard.property.Impp;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -65,49 +64,59 @@ public class ImppScribeTest {
 	}
 
 	@Test
-	public void marshalText() {
+	public void writeText() {
 		sensei.assertWriteText(withValue).run(uri);
 		sensei.assertWriteText(empty).run("");
 	}
 
 	@Test
-	public void marshalXml() {
+	public void writeXml() {
 		sensei.assertWriteXml(withValue).run("<uri>" + uri + "</uri>");
 		sensei.assertWriteXml(empty).run("<uri/>");
 	}
 
 	@Test
-	public void marshalJson() {
+	public void writeJson() {
 		sensei.assertWriteJson(withValue).run(uri);
 		sensei.assertWriteJson(empty).run("");
 	}
 
 	@Test
-	public void unmarshalText() {
-		sensei.assertParseText(uri).run(is(withValue));
-		sensei.assertParseText(badUri).cannotParse();
-		sensei.assertParseText("").run(is(empty));
+	public void escape_special_chars() {
+		Impp impp = new Impp("special", "öffentlich");
+		String expected = "special:%C3%B6ffentlich";
+
+		sensei.assertWriteText(impp).run(expected);
+		sensei.assertWriteXml(impp).run("<uri>" + expected + "</uri>");
+		sensei.assertWriteJson(impp).run(expected);
 	}
 
 	@Test
-	public void unmarshalXml() {
-		sensei.assertParseXml("<uri>" + uri + "</uri>").run(is(withValue));
+	public void parseText() {
+		sensei.assertParseText(uri).run(withValue);
+		sensei.assertParseText(badUri).cannotParse();
+		sensei.assertParseText("").run(empty);
+	}
+
+	@Test
+	public void parseXml() {
+		sensei.assertParseXml("<uri>" + uri + "</uri>").run(withValue);
 		sensei.assertParseXml("<uri>" + badUri + "</uri>").cannotParse();
 		sensei.assertParseXml("").cannotParse();
 	}
 
 	@Test
-	public void unmarshalHtml() {
-		sensei.assertParseHtml("<a href=\"aim:goim?screenname=johndoe\">IM me</a>").run(is(withValue));
-		sensei.assertParseHtml("<div>aim:goim?screenname=johndoe</div>").run(is(withValue));
+	public void parseHtml() {
+		sensei.assertParseHtml("<a href=\"aim:goim?screenname=johndoe\">IM me</a>").run(withValue);
+		sensei.assertParseHtml("<div>aim:goim?screenname=johndoe</div>").run(withValue);
 		sensei.assertParseHtml("<div>johndoe</div>").cannotParse();
 	}
 
 	@Test
-	public void unmarshalJson() {
-		sensei.assertParseJson(uri).run(is(withValue));
+	public void parseJson() {
+		sensei.assertParseJson(uri).run(withValue);
 		sensei.assertParseJson(badUri).cannotParse();
-		sensei.assertParseJson("").run(is(empty));
+		sensei.assertParseJson("").run(empty);
 	}
 
 	@Test
@@ -189,13 +198,5 @@ public class ImppScribeTest {
 	private void assertWriteHtmlLink(Impp property, String expectedUri) {
 		String actualUri = scribe.writeHtmlLink(property);
 		assertEquals(expectedUri, actualUri);
-	}
-
-	private Check<Impp> is(final Impp expected) {
-		return new Check<Impp>() {
-			public void check(Impp actual) {
-				assertEquals(expected.getUri(), actual.getUri());
-			}
-		};
 	}
 }

@@ -1,33 +1,32 @@
 package ezvcard.property;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
+import java.lang.reflect.Constructor;
+import java.util.*;
 
+import ezvcard.Messages;
+import ezvcard.SupportedVersions;
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.Warning;
+import ezvcard.parameter.Pid;
 import ezvcard.parameter.VCardParameters;
+import ezvcard.util.CharacterBitSet;
+
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-import java.util.*;
-
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -41,7 +40,7 @@ import java.util.*;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -61,14 +60,19 @@ public abstract class VCardProperty implements Comparable<VCardProperty> {
 	/**
 	 * The property's parameters.
 	 */
-	protected VCardParameters parameters = new VCardParameters();
+	protected VCardParameters parameters;
+
+	public VCardProperty() {
+		parameters = new VCardParameters();
+	}
 
 	/**
-	 * Gets the vCard versions that support this property.
-	 * @return the vCard versions that support this property.
+	 * Copy constructor.
+	 * @param original the property to make a copy of
 	 */
-	public final Set<VCardVersion> getSupportedVersions() {
-		return _supportedVersions();
+	protected VCardProperty(VCardProperty original) {
+		group = original.group;
+		parameters = new VCardParameters(original.parameters);
 	}
 
 	/**
@@ -76,14 +80,39 @@ public abstract class VCardProperty implements Comparable<VCardProperty> {
 	 * Gets the vCard versions that support this property.
 	 * </p>
 	 * <p>
-	 * This method should be overridden by child classes if the property does
-	 * not support all vCard versions. The default implementation of this method
-	 * returns all vCard versions.
+	 * The supported versions are defined by assigning a
+	 * {@link SupportedVersions @SupportedVersions} annotation to the property
+	 * class. Property classes without this annotation are considered to be
+	 * supported by all versions.
 	 * </p>
 	 * @return the vCard versions that support this property.
 	 */
-	protected Set<VCardVersion> _supportedVersions() {
-		return EnumSet.copyOf(Arrays.asList(VCardVersion.values()));
+	public final VCardVersion[] getSupportedVersions() {
+		SupportedVersions supportedVersionsAnnotation = getClass().getAnnotation(SupportedVersions.class);
+		return (supportedVersionsAnnotation == null) ? VCardVersion.values() : supportedVersionsAnnotation.value();
+	}
+
+	/**
+	 * <p>
+	 * Determines if this property is supported by the given vCard version.
+	 * </p>
+	 * <p>
+	 * The supported versions are defined by assigning a
+	 * {@link SupportedVersions} annotation to the property class. Property
+	 * classes without this annotation are considered to be supported by all
+	 * versions.
+	 * </p>
+	 * @param version the vCard version
+	 * @return true if it is supported, false if not
+	 */
+	public final boolean isSupportedBy(VCardVersion version) {
+		VCardVersion supportedVersions[] = getSupportedVersions();
+		for (VCardVersion supportedVersion : supportedVersions) {
+			if (supportedVersion == version) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -103,9 +132,8 @@ public abstract class VCardProperty implements Comparable<VCardProperty> {
 		List<Warning> warnings = new ArrayList<Warning>(0);
 
 		//check the supported versions
-		Set<VCardVersion> supportedVersions = getSupportedVersions();
-		if (!supportedVersions.contains(version)) {
-			warnings.add(new Warning(2, supportedVersions));
+		if (!isSupportedBy(version)) {
+			warnings.add(new Warning(2, Arrays.toString(getSupportedVersions())));
 		}
 
 		//check parameters
@@ -113,8 +141,8 @@ public abstract class VCardProperty implements Comparable<VCardProperty> {
 
 		//check group
 		if (group != null) {
-			Pattern validCharacters = Pattern.compile("(?i)[-a-z0-9]+");
-			if (!validCharacters.matcher(group).matches()) {
+			CharacterBitSet validCharacters = new CharacterBitSet("-a-zA-Z0-9");
+			if (!validCharacters.containsOnly(group)) {
 				warnings.add(new Warning(23, group));
 			}
 		}
@@ -146,9 +174,12 @@ public abstract class VCardProperty implements Comparable<VCardProperty> {
 
 	/**
 	 * Sets the property's parameters.
-	 * @param parameters the parameters
+	 * @param parameters the parameters (cannot be null)
 	 */
 	public void setParameters(VCardParameters parameters) {
+		if (parameters == null) {
+			throw new NullPointerException(Messages.INSTANCE.getExceptionMessage(42));
+		}
 		this.parameters = parameters;
 	}
 
@@ -164,10 +195,10 @@ public abstract class VCardProperty implements Comparable<VCardProperty> {
 	/**
 	 * Gets all values of a parameter.
 	 * @param name the parameter name (case insensitive, e.g. "LANGUAGE")
-	 * @return the parameter values
+	 * @return the parameter values (this list is immutable)
 	 */
 	public List<String> getParameters(String name) {
-		return parameters.get(name);
+		return Collections.unmodifiableList(parameters.get(name));
 	}
 
 	/**
@@ -231,63 +262,153 @@ public abstract class VCardProperty implements Comparable<VCardProperty> {
 		return pref1.compareTo(pref0);
 	}
 
-	//Note: The following parameter helper methods are package-scoped to prevent them from cluttering up the Javadocs
+	/**
+	 * <p>
+	 * Gets string representations of the class's fields for the
+	 * {@link #toString} method.
+	 * </p>
+	 * <p>
+	 * Meant to be overridden by child classes. The default implementation
+	 * returns an empty map.
+	 * </p>
+	 * @return the values of the class's fields (key = field name, value = field
+	 * value)
+	 */
+	protected Map<String, Object> toStringValues() {
+		return Collections.emptyMap();
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(getClass().getName());
+		sb.append(" [ group=").append(group);
+		sb.append(" | parameters=").append(parameters);
+		for (Map.Entry<String, Object> field : toStringValues().entrySet()) {
+			String fieldName = field.getKey();
+			Object fieldValue = field.getValue();
+			sb.append(" | ").append(fieldName).append('=').append(fieldValue);
+		}
+		sb.append(" ]");
+		return sb.toString();
+	}
 
 	/**
 	 * <p>
-	 * Gets all PID values.
+	 * Creates a copy of this property object.
+	 * </p>
+	 * <p>
+	 * The default implementation of this method uses reflection to look for a
+	 * copy constructor. Child classes SHOULD override this method to avoid the
+	 * performance overhead involved in using reflection.
+	 * </p>
+	 * <p>
+	 * The child class's copy constructor, if present, MUST invoke the
+	 * {@link #VCardProperty(VCardProperty)} super constructor to ensure that
+	 * the group name and parameters are also copied.
+	 * </p>
+	 * <p>
+	 * This method MUST be overridden by the child class if the child class does
+	 * not have a copy constructor. Otherwise, an
+	 * {@link UnsupportedOperationException} will be thrown when an attempt is
+	 * made to copy the property (such as in the {@link VCard#VCard(VCard) VCard
+	 * class's copy constructor}).
+	 * </p>
+	 * @return the copy
+	 * @throws UnsupportedOperationException if the class does not have a copy
+	 * constructor or there is a problem invoking it
+	 */
+	public VCardProperty copy() {
+		Class<? extends VCardProperty> clazz = getClass();
+
+		try {
+			Constructor<? extends VCardProperty> copyConstructor = clazz.getConstructor(clazz);
+			return copyConstructor.newInstance(this);
+		} catch (Exception e) {
+			throw new UnsupportedOperationException(Messages.INSTANCE.getExceptionMessage(31, clazz.getName()), e);
+		}
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((group == null) ? 0 : group.toLowerCase().hashCode());
+		result = prime * result + parameters.hashCode();
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (obj == null) return false;
+		if (getClass() != obj.getClass()) return false;
+		VCardProperty other = (VCardProperty) obj;
+		if (group == null) {
+			if (other.group != null) return false;
+		} else if (!group.equalsIgnoreCase(other.group)) return false;
+		if (!parameters.equals(other.parameters)) return false;
+		return true;
+	}
+
+	/*
+	 * Note: The following parameter helper methods are package-scoped so they
+	 * don't clutter up the Javadocs for the VCardProperty class. They are
+	 * defined here instead of in the child classes that use them, so that their
+	 * Javadocs don't have to be repeated.
+	 */
+
+	/**
+	 * <p>
+	 * Gets the list that stores this property's PID (property ID) parameter
+	 * values.
+	 * </p>
+	 * <p>
+	 * PIDs can exist on any property where multiple instances are allowed (such
+	 * as {@link Email} or {@link Address}, but not {@link StructuredName}
+	 * because only 1 instance of this property is allowed per vCard).
+	 * </p>
+	 * <p>
+	 * When used in conjunction with the {@link ClientPidMap} property, it
+	 * allows an individual property instance to be uniquely identifiable. This
+	 * feature is made use of when two different versions of the same vCard have
+	 * to be merged together (called "synchronizing").
 	 * </p>
 	 * <p>
 	 * <b>Supported versions:</b> {@code 4.0}
 	 * </p>
-	 * @return the PID values or empty set if there are none
-	 * @see VCardParameters#getPids
+	 * @return the PID parameter values (this list is mutable)
+	 * @see <a href="http://tools.ietf.org/html/rfc6350#page-19">RFC 6350
+	 * p.19</a>
 	 */
-	List<Integer[]> getPids() {
+	List<Pid> getPids() {
 		return parameters.getPids();
 	}
 
 	/**
 	 * <p>
-	 * Adds a PID value.
-	 * </p>
-	 * <p>
-	 * <b>Supported versions:</b> {@code 4.0}
-	 * </p>
-	 * @param localId the local ID
-	 * @param clientPidMapRef the ID used to reference the property's globally
-	 * unique identifier in the CLIENTPIDMAP property.
-	 * @see VCardParameters#addPid(int, int)
-	 */
-	void addPid(int localId, int clientPidMapRef) {
-		parameters.addPid(localId, clientPidMapRef);
-	}
-
-	/**
-	 * <p>
-	 * Removes all PID values.
-	 * </p>
-	 * <p>
-	 * <b>Supported versions:</b> {@code 4.0}
-	 * </p>
-	 * @see VCardParameters#removePids
-	 */
-	void removePids() {
-		parameters.removePids();
-	}
-
-	/**
-	 * <p>
-	 * Gets the preference value. The lower the number, the more preferred this
-	 * property instance is compared with other properties in the same vCard of
+	 * Gets this property's preference value. The lower this number is, the more
+	 * "preferred" the property instance is compared with other properties of
 	 * the same type. If a property doesn't have a preference value, then it is
 	 * considered the least preferred.
 	 * </p>
 	 * <p>
+	 * In the vCard below, the {@link Address} on the second row is the most
+	 * preferred because it has the lowest PREF value.
+	 * </p>
+	 *
+	 * <pre>
+	 * ADR;TYPE=work;PREF=2:;;1600 Amphitheatre Parkway;Mountain View;CA;94043
+	 * ADR;TYPE=work;PREF=1:;;One Microsoft Way;Redmond;WA;98052
+	 * ADR;TYPE=home:;;123 Maple St;Hometown;KS;12345
+	 * </pre>
+	 *
+	 * <p>
 	 * <b>Supported versions:</b> {@code 4.0}
 	 * </p>
-	 * @return the preference value or null if it doesn't exist
-	 * @see VCardParameters#getPref
+	 * @return the preference value or null if not set
+	 * @see <a href="http://tools.ietf.org/html/rfc6350#page-17">RFC 6350
+	 * p.17</a>
 	 */
 	Integer getPref() {
 		return parameters.getPref();
@@ -295,16 +416,28 @@ public abstract class VCardProperty implements Comparable<VCardProperty> {
 
 	/**
 	 * <p>
-	 * Sets the preference value. The lower the number, the more preferred this
-	 * property instance is compared with other properties in the same vCard of
+	 * Sets this property's preference value. The lower this number is, the more
+	 * "preferred" the property instance is compared with other properties of
 	 * the same type. If a property doesn't have a preference value, then it is
 	 * considered the least preferred.
 	 * </p>
 	 * <p>
+	 * In the vCard below, the {@link Address} on the second row is the most
+	 * preferred because it has the lowest PREF value.
+	 * </p>
+	 *
+	 * <pre>
+	 * ADR;TYPE=work;PREF=2:;;1600 Amphitheatre Parkway;Mountain View;CA;94043
+	 * ADR;TYPE=work;PREF=1:;;One Microsoft Way;Redmond;WA;98052
+	 * ADR;TYPE=home:;;123 Maple St;Hometown;KS;12345
+	 * </pre>
+	 *
+	 * <p>
 	 * <b>Supported versions:</b> {@code 4.0}
 	 * </p>
 	 * @param pref the preference value or null to remove
-	 * @see VCardParameters#setPref
+	 * @see <a href="http://tools.ietf.org/html/rfc6350#page-17">RFC 6350
+	 * p.17</a>
 	 */
 	void setPref(Integer pref) {
 		parameters.setPref(pref);
@@ -313,7 +446,6 @@ public abstract class VCardProperty implements Comparable<VCardProperty> {
 	/**
 	 * Gets the language that the property value is written in.
 	 * @return the language or null if not set
-	 * @see VCardParameters#getLanguage
 	 */
 	String getLanguage() {
 		return parameters.getLanguage();
@@ -322,31 +454,48 @@ public abstract class VCardProperty implements Comparable<VCardProperty> {
 	/**
 	 * Sets the language that the property value is written in.
 	 * @param language the language or null to remove
-	 * @see VCardParameters#setLanguage
 	 */
 	void setLanguage(String language) {
 		parameters.setLanguage(language);
 	}
 
 	/**
+	 * <p>
 	 * Gets the sorted position of this property when it is grouped together
 	 * with other properties of the same type. Properties with low index values
-	 * are put at the beginning of the sorted list and properties with high
-	 * index values are put at the end of the list.
+	 * are put at the beginning of the sorted list. Properties with high index
+	 * values are put at the end of the list.
+	 * </p>
+	 * <p>
+	 * <b>Supported versions:</b> {@code 4.0}
+	 * </p>
 	 * @return the index or null if not set
-	 * @see VCardParameters#setIndex
+	 * @throws IllegalStateException if the parameter value is malformed and
+	 * cannot be parsed. If this happens, you may use the
+	 * {@link #getParameter(String)} method to retrieve its raw value.
+	 * @see <a href="https://tools.ietf.org/html/rfc6715#page-7">RFC 6715
+	 * p.7</a>
 	 */
 	Integer getIndex() {
 		return parameters.getIndex();
 	}
 
 	/**
+	 * <p>
 	 * Sets the sorted position of this property when it is grouped together
 	 * with other properties of the same type. Properties with low index values
-	 * are put at the beginning of the sorted list and properties with high
-	 * index values are put at the end of the list.
+	 * are put at the beginning of the sorted list. Properties with high index
+	 * values are put at the end of the list.
+	 * </p>
+	 * <p>
+	 * <b>Supported versions:</b> {@code 4.0}
+	 * </p>
 	 * @param index the index or null to remove
-	 * @see VCardParameters#setIndex
+	 * @throws IllegalStateException if the parameter value is malformed and
+	 * cannot be parsed. If this happens, you may use the
+	 * {@link #getParameter(String)} method to retrieve its raw value.
+	 * @see <a href="https://tools.ietf.org/html/rfc6715#page-7">RFC 6715
+	 * p.7</a>
 	 */
 	void setIndex(Integer index) {
 		parameters.setIndex(index);

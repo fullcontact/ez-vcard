@@ -1,28 +1,32 @@
 package ezvcard.property;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.Warning;
 import ezvcard.parameter.AddressType;
+import ezvcard.parameter.Pid;
 import ezvcard.parameter.VCardParameters;
+import ezvcard.util.GeoUri;
+import ezvcard.util.StringUtils;
 import lombok.*;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -36,7 +40,7 @@ import lombok.*;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -44,32 +48,32 @@ import lombok.*;
  * <p>
  * Defines a mailing address.
  * </p>
- * 
+ *
  * <p>
  * <b>Code sample (creating)</b>
  * </p>
- * 
+ *
  * <pre class="brush:java">
  * VCard vcard = new VCard();
- * 
+ *
  * Address adr = new Address();
  * adr.setStreetAddress(&quot;123 Main St.&quot;);
  * adr.setLocality(&quot;Austin&quot;);
  * adr.setRegion(&quot;TX&quot;);
  * adr.setPostalCode(&quot;12345&quot;);
  * adr.setCountry(&quot;USA&quot;);
- * adr.addType(AddressType.WORK);
- * 
+ * adr.getTypes().add(AddressType.WORK);
+ *
  * //optionally, set the text to print on the mailing label
  * adr.setLabel(&quot;123 Main St.\nAustin, TX 12345\nUSA&quot;);
- * 
+ *
  * vcard.addAddress(adr);
  * </pre>
- * 
+ *
  * <p>
  * <b>Code sample (retrieving)</b>
  * </p>
- * 
+ *
  * <pre class="brush:java">
  * VCard vcard = ...
  * for (Address adr : vcard.getAddresses()){
@@ -78,7 +82,16 @@ import lombok.*;
  *   //etc.
  * }
  * </pre>
- * 
+ *
+ * <p>
+ * <b>Only part of the street address is being returned!</b>
+ * </p>
+ * <p>
+ * This usually means that the vCard you parsed contains unescaped comma
+ * characters. To get the full address, use the {@link #getStreetAddressFull}
+ * method.
+ * </p>
+ *
  * <p>
  * <b>Property name:</b> {@code ADR}
  * </p>
@@ -86,24 +99,62 @@ import lombok.*;
  * <b>Supported versions:</b> {@code 2.1, 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-32">RFC 6350 p.32</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-11">RFC 2426 p.11</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.11</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public class Address extends VCardProperty implements HasAltId {
-	private String poBox;
-	private String extendedAddress;
-	private String streetAddress;
-	private String locality;
-	private String region;
-	private String postalCode;
-	private String country;
+	private final List<String> poBoxes;
+	private final List<String> extendedAddresses;
+	private final List<String> streetAddresses;
+	private final List<String> localities;
+	private final List<String> regions;
+	private final List<String> postalCodes;
+	private final List<String> countries;
+
+	public Address() {
+		poBoxes = new ArrayList<String>(1);
+		extendedAddresses = new ArrayList<String>(1);
+		streetAddresses = new ArrayList<String>(1);
+		localities = new ArrayList<String>(1);
+		regions = new ArrayList<String>(1);
+		postalCodes = new ArrayList<String>(1);
+		countries = new ArrayList<String>(1);
+	}
+
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Address(Address original) {
+		super(original);
+		poBoxes = new ArrayList<String>(original.poBoxes);
+		extendedAddresses = new ArrayList<String>(original.extendedAddresses);
+		streetAddresses = new ArrayList<String>(original.streetAddresses);
+		localities = new ArrayList<String>(original.localities);
+		regions = new ArrayList<String>(original.regions);
+		postalCodes = new ArrayList<String>(original.postalCodes);
+		countries = new ArrayList<String>(original.countries);
+	}
 
 	/**
 	 * Gets the P.O. (post office) box.
 	 * @return the P.O. box or null if not set
 	 */
 	public String getPoBox() {
-		return poBox;
+		return first(poBoxes);
+	}
+
+	/**
+	 * Gets the list that holds the P.O. (post office) boxes that are assigned
+	 * to this address. An address is unlikely to have more than one, but it's
+	 * possible nonetheless.
+	 * @return the P.O. boxes (this list is mutable)
+	 */
+	public List<String> getPoBoxes() {
+		return poBoxes;
 	}
 
 	/**
@@ -111,7 +162,7 @@ public class Address extends VCardProperty implements HasAltId {
 	 * @param poBox the P.O. box or null to remove
 	 */
 	public void setPoBox(String poBox) {
-		this.poBox = poBox;
+		set(poBoxes, poBox);
 	}
 
 	/**
@@ -119,7 +170,26 @@ public class Address extends VCardProperty implements HasAltId {
 	 * @return the extended address (e.g. "Suite 200") or null if not set
 	 */
 	public String getExtendedAddress() {
-		return extendedAddress;
+		return first(extendedAddresses);
+	}
+
+	/**
+	 * Gets the list that holds the extended addresses that are assigned to this
+	 * address. An address is unlikely to have more than one, but it's possible
+	 * nonetheless.
+	 * @return the extended addresses (this list is mutable)
+	 */
+	public List<String> getExtendedAddresses() {
+		return extendedAddresses;
+	}
+
+	/**
+	 * Gets the extended address. Use this method when the ADR property of the
+	 * vCard you are parsing contains unescaped comma characters.
+	 * @return the extended address or null if not set
+	 */
+	public String getExtendedAddressFull() {
+		return getAddressFull(extendedAddresses);
 	}
 
 	/**
@@ -128,7 +198,7 @@ public class Address extends VCardProperty implements HasAltId {
 	 * remove
 	 */
 	public void setExtendedAddress(String extendedAddress) {
-		this.extendedAddress = extendedAddress;
+		set(extendedAddresses, extendedAddress);
 	}
 
 	/**
@@ -136,7 +206,26 @@ public class Address extends VCardProperty implements HasAltId {
 	 * @return the street address (e.g. "123 Main St")
 	 */
 	public String getStreetAddress() {
-		return streetAddress;
+		return first(streetAddresses);
+	}
+
+	/**
+	 * Gets the list that holds the street addresses that are assigned to this
+	 * address. An address is unlikely to have more than one, but it's possible
+	 * nonetheless.
+	 * @return the street addresses (this list is mutable)
+	 */
+	public List<String> getStreetAddresses() {
+		return streetAddresses;
+	}
+
+	/**
+	 * Gets the street address. Use this method when the ADR property of the
+	 * vCard you are parsing contains unescaped comma characters.
+	 * @return the street address or null if not set
+	 */
+	public String getStreetAddressFull() {
+		return getAddressFull(streetAddresses);
 	}
 
 	/**
@@ -145,7 +234,7 @@ public class Address extends VCardProperty implements HasAltId {
 	 * remove
 	 */
 	public void setStreetAddress(String streetAddress) {
-		this.streetAddress = streetAddress;
+		set(streetAddresses, streetAddress);
 	}
 
 	/**
@@ -153,7 +242,17 @@ public class Address extends VCardProperty implements HasAltId {
 	 * @return the locality (e.g. "Boston") or null if not set
 	 */
 	public String getLocality() {
-		return locality;
+		return first(localities);
+	}
+
+	/**
+	 * Gets the list that holds the localities that are assigned to this
+	 * address. An address is unlikely to have more than one, but it's possible
+	 * nonetheless.
+	 * @return the localities (this list is mutable)
+	 */
+	public List<String> getLocalities() {
+		return localities;
 	}
 
 	/**
@@ -161,39 +260,59 @@ public class Address extends VCardProperty implements HasAltId {
 	 * @param locality the locality or null to remove
 	 */
 	public void setLocality(String locality) {
-		this.locality = locality;
+		set(localities, locality);
 	}
 
 	/**
-	 * Gets the region.
+	 * Gets the region (state).
 	 * @return the region (e.g. "Texas") or null if not set
 	 */
 	public String getRegion() {
-		return region;
+		return first(regions);
 	}
 
 	/**
-	 * Sets the region.
+	 * Gets the list that holds the regions that are assigned to this address.
+	 * An address is unlikely to have more than one, but it's possible
+	 * nonetheless.
+	 * @return the regions (this list is mutable)
+	 */
+	public List<String> getRegions() {
+		return regions;
+	}
+
+	/**
+	 * Sets the region (state).
 	 * @param region the region (e.g. "Texas") or null to remove
 	 */
 	public void setRegion(String region) {
-		this.region = region;
+		set(regions, region);
 	}
 
 	/**
-	 * Gets the postal code.
+	 * Gets the postal code (zip code).
 	 * @return the postal code (e.g. "90210") or null if not set
 	 */
 	public String getPostalCode() {
-		return postalCode;
+		return first(postalCodes);
 	}
 
 	/**
-	 * Sets the postal code.
+	 * Gets the list that holds the postal codes that are assigned to this
+	 * address. An address is unlikely to have more than one, but it's possible
+	 * nonetheless.
+	 * @return the postal codes (this list is mutable)
+	 */
+	public List<String> getPostalCodes() {
+		return postalCodes;
+	}
+
+	/**
+	 * Sets the postal code (zip code).
 	 * @param postalCode the postal code (e.g. "90210") or null to remove
 	 */
 	public void setPostalCode(String postalCode) {
-		this.postalCode = postalCode;
+		set(postalCodes, postalCode);
 	}
 
 	/**
@@ -201,7 +320,17 @@ public class Address extends VCardProperty implements HasAltId {
 	 * @return the country (e.g. "USA") or null if not set
 	 */
 	public String getCountry() {
-		return country;
+		return first(countries);
+	}
+
+	/**
+	 * Gets the list that holds the countries that are assigned to this address.
+	 * An address is unlikely to have more than one, but it's possible
+	 * nonetheless.
+	 * @return the countries (this list is mutable)
+	 */
+	public List<String> getCountries() {
+		return countries;
 	}
 
 	/**
@@ -209,36 +338,21 @@ public class Address extends VCardProperty implements HasAltId {
 	 * @param country the country (e.g. "USA") or null to remove
 	 */
 	public void setCountry(String country) {
-		this.country = country;
+		set(countries, country);
 	}
 
 	/**
-	 * Gets all the TYPE parameters.
-	 * @return the TYPE parameters or empty set if there are none
+	 * Gets the list that stores this property's address types (TYPE
+	 * parameters).
+	 * @return the address types (e.g. "HOME", "WORK") (this list is mutable)
 	 */
-	public Set<AddressType> getTypes() {
-		Set<String> values = parameters.getTypes();
-		Set<AddressType> types = new HashSet<AddressType>(values.size());
-		for (String value : values) {
-			types.add(AddressType.get(value));
-		}
-		return types;
-	}
-
-	/**
-	 * Adds a TYPE parameter.
-	 * @param type the TYPE parameter to add
-	 */
-	public void addType(AddressType type) {
-		parameters.addType(type.getValue());
-	}
-
-	/**
-	 * Removes a TYPE parameter.
-	 * @param type the TYPE parameter to remove
-	 */
-	public void removeType(AddressType type) {
-		parameters.removeType(type.getValue());
+	public List<AddressType> getTypes() {
+		return parameters.new TypeParameterList<AddressType>() {
+			@Override
+			protected AddressType _asObject(String value) {
+				return AddressType.get(value);
+			}
+		};
 	}
 
 	@Override
@@ -253,7 +367,7 @@ public class Address extends VCardProperty implements HasAltId {
 
 	/**
 	 * Gets the label of the address.
-	 * @return the label or null if it doesn't have one
+	 * @return the label or null if not set
 	 */
 	public String getLabel() {
 		return parameters.getLabel();
@@ -268,46 +382,38 @@ public class Address extends VCardProperty implements HasAltId {
 	}
 
 	/**
+	 * <p>
 	 * Gets the global positioning coordinates that are associated with this
 	 * address.
+	 * </p>
 	 * <p>
 	 * <b>Supported versions:</b> {@code 4.0}
 	 * </p>
-	 * @return the latitude (index 0) and longitude (index 1) or null if not set
-	 * or null if the parameter value was in an incorrect format
+	 * @return the geo URI or not if not found
 	 * @see VCardParameters#getGeo
 	 */
-	public double[] getGeo() {
+	public GeoUri getGeo() {
 		return parameters.getGeo();
 	}
 
 	/**
+	 * <p>
 	 * Sets the global positioning coordinates that are associated with this
 	 * address.
+	 * </p>
 	 * <p>
 	 * <b>Supported versions:</b> {@code 4.0}
 	 * </p>
-	 * @param latitude the latitude
-	 * @param longitude the longitude
+	 * @param uri the geo URI or null to remove
 	 * @see VCardParameters#setGeo
 	 */
-	public void setGeo(double latitude, double longitude) {
-		parameters.setGeo(latitude, longitude);
+	public void setGeo(GeoUri uri) {
+		parameters.setGeo(uri);
 	}
 
 	@Override
-	public List<Integer[]> getPids() {
+	public List<Pid> getPids() {
 		return super.getPids();
-	}
-
-	@Override
-	public void addPid(int localId, int clientPidMapRef) {
-		super.addPid(localId, clientPidMapRef);
-	}
-
-	@Override
-	public void removePids() {
-		super.removePids();
 	}
 
 	@Override
@@ -335,8 +441,7 @@ public class Address extends VCardProperty implements HasAltId {
 	 * <p>
 	 * <b>Supported versions:</b> {@code 4.0}
 	 * </p>
-	 * @return the timezone (e.g. "America/New_York") or null if it doesn't
-	 * exist
+	 * @return the timezone (e.g. "America/New_York") or null if not set
 	 */
 	public String getTimezone() {
 		return parameters.getTimezone();
@@ -361,9 +466,71 @@ public class Address extends VCardProperty implements HasAltId {
 				continue;
 			}
 
-			if (!type.isSupported(version)) {
+			if (!type.isSupportedBy(version)) {
 				warnings.add(new Warning(9, type.getValue()));
 			}
 		}
+	}
+
+	@Override
+	protected Map<String, Object> toStringValues() {
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put("poBoxes", poBoxes);
+		values.put("extendedAddresses", extendedAddresses);
+		values.put("streetAddresses", streetAddresses);
+		values.put("localities", localities);
+		values.put("regions", regions);
+		values.put("postalCodes", postalCodes);
+		values.put("countries", countries);
+		return values;
+	}
+
+	@Override
+	public Address copy() {
+		return new Address(this);
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + countries.hashCode();
+		result = prime * result + extendedAddresses.hashCode();
+		result = prime * result + localities.hashCode();
+		result = prime * result + poBoxes.hashCode();
+		result = prime * result + postalCodes.hashCode();
+		result = prime * result + regions.hashCode();
+		result = prime * result + streetAddresses.hashCode();
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!super.equals(obj)) return false;
+		Address other = (Address) obj;
+		if (!countries.equals(other.countries)) return false;
+		if (!extendedAddresses.equals(other.extendedAddresses)) return false;
+		if (!localities.equals(other.localities)) return false;
+		if (!poBoxes.equals(other.poBoxes)) return false;
+		if (!postalCodes.equals(other.postalCodes)) return false;
+		if (!regions.equals(other.regions)) return false;
+		if (!streetAddresses.equals(other.streetAddresses)) return false;
+		return true;
+	}
+
+	private static String first(List<String> list) {
+		return list.isEmpty() ? null : list.get(0);
+	}
+
+	private static void set(List<String> list, String value) {
+		list.clear();
+		if (value != null) {
+			list.add(value);
+		}
+	}
+
+	private static String getAddressFull(List<String> list) {
+		return list.isEmpty() ? null : StringUtils.join(list, ",");
 	}
 }

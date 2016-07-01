@@ -9,7 +9,7 @@ import ezvcard.io.scribe.Sensei.Check;
 import ezvcard.property.VCardProperty;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ import ezvcard.property.VCardProperty;
  * @author Michael Angstadt
  */
 public class SimplePropertyScribeTest {
-	private final SimplePropertyMarshallerImpl scribe = new SimplePropertyMarshallerImpl();
+	private final SimplePropertyScribeImpl scribe = new SimplePropertyScribeImpl();
 	private final Sensei<TestProperty> sensei = new Sensei<TestProperty>(scribe);
 
 	private final String value = "One, two\nthree; four\\.";
@@ -71,13 +71,13 @@ public class SimplePropertyScribeTest {
 
 	@Test
 	public void parseText() {
-		sensei.assertParseText(valueEscaped).run(is(withValue));
+		sensei.assertParseText(valueEscaped).run(withValue);
 		sensei.assertParseText("").run(hasText(""));
 	}
 
 	@Test
 	public void parseXml() {
-		sensei.assertParseXml("<text>" + value + "</text>").run(is(withValue));
+		sensei.assertParseXml("<text>" + value + "</text>").run(withValue);
 		sensei.assertParseXml("").cannotParse();
 	}
 
@@ -89,12 +89,12 @@ public class SimplePropertyScribeTest {
 
 	@Test
 	public void parseJson() {
-		sensei.assertParseJson(value).run(is(withValue));
+		sensei.assertParseJson(value).run(withValue);
 		sensei.assertParseJson("").run(hasText(""));
 	}
 
-	private static class SimplePropertyMarshallerImpl extends SimplePropertyScribe<TestProperty> {
-		public SimplePropertyMarshallerImpl() {
+	private static class SimplePropertyScribeImpl extends SimplePropertyScribe<TestProperty> {
+		public SimplePropertyScribeImpl() {
 			super(TestProperty.class, "TEST", VCardDataType.TEXT);
 		}
 
@@ -121,14 +121,6 @@ public class SimplePropertyScribeTest {
 		return new Check<TestProperty>() {
 			public void check(TestProperty actual) {
 				assertEquals(text, actual.value);
-			}
-		};
-	}
-
-	private Check<TestProperty> is(final TestProperty expected) {
-		return new Check<TestProperty>() {
-			public void check(TestProperty actual) {
-				assertEquals(expected.value, actual.value);
 			}
 		};
 	}

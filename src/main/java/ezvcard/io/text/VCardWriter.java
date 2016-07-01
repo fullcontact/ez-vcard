@@ -21,12 +21,14 @@ import ezvcard.io.SkipMeException;
 import ezvcard.io.StreamWriter;
 import ezvcard.io.scribe.VCardPropertyScribe;
 import ezvcard.parameter.VCardParameters;
+import ezvcard.property.Address;
 import ezvcard.property.BinaryProperty;
+import ezvcard.property.StructuredName;
 import ezvcard.property.VCardProperty;
 import ezvcard.util.IOUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -60,6 +62,7 @@ import ezvcard.util.IOUtils;
  * </p>
  * <p>
  * <b>Example:</b>
+ * </p>
  * 
  * <pre class="brush:java">
  * VCard vcard1 = ...
@@ -75,10 +78,9 @@ import ezvcard.util.IOUtils;
  * }
  * </pre>
  * 
- * </p>
- * 
  * <p>
  * <b>Changing the line folding settings:</b>
+ * </p>
  * 
  * <pre class="brush:java">
  * VCardWriter writer = new VCardWriter(...);
@@ -95,8 +97,6 @@ import ezvcard.util.IOUtils;
  * //change newline character
  * writer.getRawWriter().getFoldedLineWriter().setNewline("**");
  * </pre>
- * 
- * </p>
  * @author Michael Angstadt
  * @see <a href="http://www.imc.org/pdi/vcard-21.rtf">vCard 2.1</a>
  * @see <a href="http://tools.ietf.org/html/rfc2426">RFC 2426 (3.0)</a>
@@ -105,7 +105,8 @@ import ezvcard.util.IOUtils;
 public class VCardWriter extends StreamWriter implements Flushable {
 	private final VCardRawWriter writer;
 	private final LinkedList<Boolean> prodIdStack = new LinkedList<Boolean>();
-	private boolean outlookCompatibility = false;
+	private TargetApplication targetApplication;
+	private Boolean includeTrailingSemicolons;
 
 	/**
 	 * @param out the output stream to write to
@@ -173,6 +174,80 @@ public class VCardWriter extends StreamWriter implements Flushable {
 
 	/**
 	 * <p>
+	 * Gets the application that the vCards will be targeted for.
+	 * </p>
+	 * <p>
+	 * Some vCard consumers do not completely adhere to the vCard specifications
+	 * and require their vCards to be formatted in a specific way. See the
+	 * {@link TargetApplication} class for a list of these applications.
+	 * </p>
+	 * @return the target application or null if the vCards do not be given any
+	 * special processing (defaults to null)
+	 */
+	public TargetApplication getTargetApplication() {
+		return targetApplication;
+	}
+
+	/**
+	 * <p>
+	 * Sets the application that the vCards will be targeted for.
+	 * </p>
+	 * <p>
+	 * Some vCard consumers do not completely adhere to the vCard specifications
+	 * and require their vCards to be formatted in a specific way. See the
+	 * {@link TargetApplication} class for a list of these applications.
+	 * </p>
+	 * @param targetApplication the target application or null if the vCards do
+	 * not require any special processing (defaults to null)
+	 */
+	public void setTargetApplication(TargetApplication targetApplication) {
+		this.targetApplication = targetApplication;
+	}
+
+	/**
+	 * <p>
+	 * Gets whether this writer will include trailing semicolon delimiters for
+	 * structured property values whose list of values end with null or empty
+	 * values. Examples of properties that use structured values are
+	 * {@link StructuredName} and {@link Address}.
+	 * </p>
+	 * <p>
+	 * This setting exists for compatibility reasons and should not make a
+	 * difference to consumers that correctly implement the vCard grammar.
+	 * </p>
+	 * @return true to include the trailing semicolons, false not to, null to
+	 * use the default behavior (defaults to false for vCard versions 2.1 and
+	 * 3.0 and true for vCard version 4.0)
+	 * @see <a href="https://github.com/mangstadt/ez-vcard/issues/57">Issue
+	 * 57</a>
+	 */
+	public Boolean isIncludeTrailingSemicolons() {
+		return includeTrailingSemicolons;
+	}
+
+	/**
+	 * <p>
+	 * Sets whether to include trailing semicolon delimiters for structured
+	 * property values whose list of values end with null or empty values.
+	 * Examples of properties that use structured values are
+	 * {@link StructuredName} and {@link Address}.
+	 * </p>
+	 * <p>
+	 * This setting exists for compatibility reasons and should not make a
+	 * difference to consumers that correctly implement the vCard grammar.
+	 * </p>
+	 * @param include true to include the trailing semicolons, false not to,
+	 * null to use the default behavior (defaults to false for vCard versions
+	 * 2.1 and 3.0 and true for vCard version 4.0)
+	 * @see <a href="https://github.com/mangstadt/ez-vcard/issues/57">Issue
+	 * 57</a>
+	 */
+	public void setIncludeTrailingSemicolons(Boolean include) {
+		includeTrailingSemicolons = include;
+	}
+
+	/**
+	 * <p>
 	 * Gets whether the writer will apply circumflex accent encoding on
 	 * parameter values (disabled by default, only applies to 3.0 and 4.0
 	 * vCards). This escaping mechanism allows for newlines and double quotes to
@@ -180,8 +255,8 @@ public class VCardWriter extends StreamWriter implements Flushable {
 	 * </p>
 	 * 
 	 * <p>
-	 * When disabled, the writer will replace newlines with spaces and double
-	 * quotes with single quotes.
+	 * Note that this encoding mechanism is defined separately from the
+	 * iCalendar specification and may not be supported by the vCard consumer.
 	 * </p>
 	 * @return true if circumflex accent encoding is enabled, false if not
 	 * @see VCardRawWriter#isCaretEncodingEnabled()
@@ -199,8 +274,8 @@ public class VCardWriter extends StreamWriter implements Flushable {
 	 * </p>
 	 * 
 	 * <p>
-	 * When disabled, the writer will replace newlines with spaces and double
-	 * quotes with single quotes.
+	 * Note that this encoding mechanism is defined separately from the
+	 * iCalendar specification and may not be supported by the vCard consumer.
 	 * </p>
 	 * @param enable true to use circumflex accent encoding, false not to
 	 * @see VCardRawWriter#setCaretEncodingEnabled(boolean)
@@ -209,46 +284,18 @@ public class VCardWriter extends StreamWriter implements Flushable {
 		writer.setCaretEncodingEnabled(enable);
 	}
 
-	/**
-	 * <p>
-	 * Gets whether vCards generated by this writer will be compatible with
-	 * Microsoft Outlook mail clients. This setting is disabled by default.
-	 * </p>
-	 * <p>
-	 * Enabling this setting adds an empty line after all base64-encoded
-	 * property values for vCard versions 2.1 and 3.0.
-	 * </p>
-	 * @return true if enabled, false if disabled (defaults to false).
-	 */
-	public boolean isOutlookCompatibility() {
-		return outlookCompatibility;
-	}
-
-	/**
-	 * <p>
-	 * Sets whether vCards generated by this writer should be fully compatible
-	 * with Microsoft Outlook mail clients. This setting is disabled by default.
-	 * </p>
-	 * <p>
-	 * Enabling this setting may make the vCards incompatible with other vCard
-	 * consumers.
-	 * </p>
-	 * <p>
-	 * Enabling this setting adds an empty line after all base64-encoded
-	 * property values for vCards with versions 2.1 and 3.0. This setting has no
-	 * effect on 4.0 vCards, or on vCards that do not have any properties with
-	 * base64-encoded values.
-	 * </p>
-	 * @param enable true to enable, false to disable (defaults to false).
-	 */
-	public void setOutlookCompatibility(boolean enable) {
-		outlookCompatibility = enable;
-	}
-
 	@Override
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected void _write(VCard vcard, List<VCardProperty> propertiesToAdd) throws IOException {
 		VCardVersion targetVersion = getTargetVersion();
+
+		Boolean includeTrailingSemicolons = this.includeTrailingSemicolons;
+		if (includeTrailingSemicolons == null) {
+			includeTrailingSemicolons = (targetVersion == VCardVersion.V4_0);
+		}
+
+		WriteContext context = new WriteContext(targetVersion, getTargetApplication(), includeTrailingSemicolons);
+
 		writer.writeBeginComponent("VCARD");
 		writer.writeVersion();
 
@@ -259,7 +306,7 @@ public class VCardWriter extends StreamWriter implements Flushable {
 			String value = null;
 			VCard nestedVCard = null;
 			try {
-				value = scribe.writeText(property, targetVersion);
+				value = scribe.writeText(property, context);
 			} catch (SkipMeException e) {
 				continue;
 			} catch (EmbeddedVCardException e) {
@@ -285,6 +332,8 @@ public class VCardWriter extends StreamWriter implements Flushable {
 					agentWriter.getRawWriter().getFoldedLineWriter().setLineLength(null);
 					agentWriter.getRawWriter().getFoldedLineWriter().setNewline("\n");
 					agentWriter.setAddProdId(false);
+					agentWriter.setIncludeTrailingSemicolons(includeTrailingSemicolons);
+					agentWriter.setTargetApplication(getTargetApplication());
 					agentWriter.setVersionStrict(versionStrict);
 					try {
 						agentWriter.write(nestedVCard);
@@ -319,27 +368,21 @@ public class VCardWriter extends StreamWriter implements Flushable {
 			//write the property
 			writer.writeProperty(property.getGroup(), scribe.getPropertyName(), parameters, value);
 
-			insertEmptyLineForOutlook(targetVersion, property);
+			fixBinaryPropertyForOutlook(property);
 		}
 
 		writer.writeEndComponent("VCARD");
 	}
 
 	/**
-	 * Outlook 2010 requires an empty line after base64 values (at least, some
-	 * of the time).
-	 * @param targetVersion the vCard version
-	 * @param property the property being written
-	 * @see <a href="https://github.com/mangstadt/ez-vcard/issues/21">Issue
-	 * 21</a>
+	 * @see TargetApplication#OUTLOOK
 	 */
-	private void insertEmptyLineForOutlook(VCardVersion targetVersion, VCardProperty property) throws IOException {
-		if (!outlookCompatibility) {
-			//setting not enabled
+	private void fixBinaryPropertyForOutlook(VCardProperty property) throws IOException {
+		if (targetApplication != TargetApplication.OUTLOOK) {
 			return;
 		}
 
-		if (targetVersion == VCardVersion.V4_0) {
+		if (getTargetVersion() == VCardVersion.V4_0) {
 			//only do this for 2.1 and 3.0 vCards
 			return;
 		}

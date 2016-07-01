@@ -11,11 +11,14 @@ import ezvcard.Ezvcard;
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.io.scribe.VCardPropertyScribe;
+import ezvcard.io.text.TargetApplication;
 import ezvcard.io.text.VCardWriter;
+import ezvcard.property.Address;
+import ezvcard.property.StructuredName;
 import ezvcard.property.VCardProperty;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -48,7 +51,8 @@ import ezvcard.property.VCardProperty;
 public class ChainingTextWriter extends ChainingWriter<ChainingTextWriter> {
 	private VCardVersion version;
 	private boolean caretEncoding = false;
-	private boolean outlook = false;
+	private Boolean includeTrailingSemicolons;
+	private TargetApplication targetApplication;
 
 	/**
 	 * @param vcards the vCards to write
@@ -91,25 +95,41 @@ public class ChainingTextWriter extends ChainingWriter<ChainingTextWriter> {
 
 	/**
 	 * <p>
-	 * Sets whether the vCards should be fully compatible with Microsoft Outlook
-	 * mail clients. This setting is disabled by default.
+	 * Sets whether to include trailing semicolon delimiters for structured
+	 * property values whose list of values end with null or empty values.
+	 * Examples of properties that use structured values are
+	 * {@link StructuredName} and {@link Address}.
 	 * </p>
 	 * <p>
-	 * Enabling this setting may make the vCards incompatible with other vCard
-	 * consumers.
+	 * This setting exists for compatibility reasons and should not make a
+	 * difference to consumers that correctly implement the vCard grammar.
 	 * </p>
-	 * <p>
-	 * Enabling this setting adds an empty line after all base64-encoded
-	 * property values for vCards with versions 2.1 and 3.0. This setting has no
-	 * effect on 4.0 vCards, or on vCards that do not have any properties with
-	 * base64-encoded values.
-	 * </p>
-	 * @param enable true to enable, false to disable (defaults to false).
-	 * @return this
-	 * @see VCardWriter#setOutlookCompatibility(boolean)
+	 * @param include true to include the trailing semicolons, false not to,
+	 * null to use the default behavior (defaults to false for vCard versions
+	 * 2.1 and 3.0 and true for vCard version 4.0)
+	 * @see <a href="https://github.com/mangstadt/ez-vcard/issues/57">Issue
+	 * 57</a>
 	 */
-	public ChainingTextWriter outlook(boolean enable) {
-		this.outlook = enable;
+	public ChainingTextWriter includeTrailingSemicolons(Boolean include) {
+		this.includeTrailingSemicolons = include;
+		return this;
+	}
+
+	/**
+	 * <p>
+	 * Sets the application that the vCards will be targeted for.
+	 * </p>
+	 * <p>
+	 * Some vCard consumers do not completely adhere to the vCard specifications
+	 * and require their vCards to be formatted in a specific way. See the
+	 * {@link TargetApplication} class for a list of these applications.
+	 * </p>
+	 * @param targetApplication the target application or null if the vCards do
+	 * not require any special processing (defaults to null)
+	 * @see VCardWriter#setTargetApplication(TargetApplication)
+	 */
+	public ChainingTextWriter targetApplication(TargetApplication targetApplication) {
+		this.targetApplication = targetApplication;
 		return this;
 	}
 
@@ -190,7 +210,8 @@ public class ChainingTextWriter extends ChainingWriter<ChainingTextWriter> {
 		writer.setAddProdId(prodId);
 		writer.setCaretEncodingEnabled(caretEncoding);
 		writer.setVersionStrict(versionStrict);
-		writer.setOutlookCompatibility(outlook);
+		writer.setIncludeTrailingSemicolons(includeTrailingSemicolons);
+		writer.setTargetApplication(targetApplication);
 		if (index != null) {
 			writer.setScribeIndex(index);
 		}

@@ -1,7 +1,9 @@
 package ezvcard.property;
 
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
@@ -12,7 +14,7 @@ import ezvcard.util.PartialDate;
 import lombok.*;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -87,6 +89,18 @@ public class DateOrTimeProperty extends VCardProperty implements HasAltId {
 	}
 
 	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public DateOrTimeProperty(DateOrTimeProperty original) {
+		super(original);
+		text = original.text;
+		date = (original.date == null) ? null : new Date(original.date.getTime());
+		partialDate = original.partialDate;
+		dateHasTime = original.dateHasTime;
+	}
+
+	/**
 	 * Gets the date value.
 	 * @return the date value or null if not set
 	 */
@@ -111,8 +125,7 @@ public class DateOrTimeProperty extends VCardProperty implements HasAltId {
 	 * Gets the reduced accuracy or truncated date. This is only supported by
 	 * vCard 4.0.
 	 * @return the reduced accuracy or truncated date or null if not set
-	 * @see "<a href="
-	 * http://tools.ietf.org/html/rfc6350">RFC 6350</a> p.12-14 for examples"
+	 * @see <a href="http://tools.ietf.org/html/rfc6350">RFC 6350 p.12-14</a>
 	 */
 	public PartialDate getPartialDate() {
 		return partialDate;
@@ -129,8 +142,7 @@ public class DateOrTimeProperty extends VCardProperty implements HasAltId {
 	 * bday.setPartialDate(PartialDate.date(null, 4, 20)); //April 20
 	 * </pre>
 	 * @param partialDate the reduced accuracy or truncated date
-	 * @see "<a href="
-	 * http://tools.ietf.org/html/rfc6350">RFC 6350</a> p.12-14 for examples"
+	 * @see <a href="http://tools.ietf.org/html/rfc6350">RFC 6350 p.12-14</a>
 	 */
 	public void setPartialDate(PartialDate partialDate) {
 		this.partialDate = partialDate;
@@ -199,6 +211,16 @@ public class DateOrTimeProperty extends VCardProperty implements HasAltId {
 		parameters.setCalscale(calscale);
 	}
 
+	@Override
+	public String getLanguage() {
+		return super.getLanguage();
+	}
+
+	@Override
+	public void setLanguage(String language) {
+		super.setLanguage(language);
+	}
+
 	//@Override
 	public String getAltId() {
 		return parameters.getAltId();
@@ -223,5 +245,44 @@ public class DateOrTimeProperty extends VCardProperty implements HasAltId {
 				warnings.add(new Warning(12));
 			}
 		}
+	}
+
+	@Override
+	protected Map<String, Object> toStringValues() {
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put("text", text);
+		values.put("date", date);
+		values.put("dateHasTime", dateHasTime);
+		values.put("partialDate", partialDate);
+		return values;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((date == null) ? 0 : date.hashCode());
+		result = prime * result + (dateHasTime ? 1231 : 1237);
+		result = prime * result + ((partialDate == null) ? 0 : partialDate.hashCode());
+		result = prime * result + ((text == null) ? 0 : text.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!super.equals(obj)) return false;
+		DateOrTimeProperty other = (DateOrTimeProperty) obj;
+		if (date == null) {
+			if (other.date != null) return false;
+		} else if (!date.equals(other.date)) return false;
+		if (dateHasTime != other.dateHasTime) return false;
+		if (partialDate == null) {
+			if (other.partialDate != null) return false;
+		} else if (!partialDate.equals(other.partialDate)) return false;
+		if (text == null) {
+			if (other.text != null) return false;
+		} else if (!text.equals(other.text)) return false;
+		return true;
 	}
 }

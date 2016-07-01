@@ -6,7 +6,7 @@ import lombok.ToString;
 import java.util.Date;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,9 @@ import java.util.Date;
  * <b>Supported versions:</b> {@code 2.1, 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-45">RFC 6350 p.45</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-22">RFC 2426 p.22</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.19</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -70,10 +73,24 @@ public class Revision extends SimpleProperty<Date> {
 	}
 
 	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Revision(Revision original) {
+		super(original);
+		value = (original.value == null) ? null : new Date(original.value.getTime());
+	}
+
+	/**
 	 * Creates a revision property whose value is the current time.
 	 * @return the property
 	 */
 	public static Revision now() {
 		return new Revision(new Date());
+	}
+
+	@Override
+	public Revision copy() {
+		return new Revision(this);
 	}
 }

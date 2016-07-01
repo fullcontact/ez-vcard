@@ -3,9 +3,10 @@ package ezvcard.io.scribe;
 import static ezvcard.VCardVersion.V2_1;
 import static ezvcard.VCardVersion.V3_0;
 import static ezvcard.VCardVersion.V4_0;
-import static ezvcard.util.TestUtils.assertSetEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+
+import java.util.Arrays;
 
 import org.junit.Test;
 
@@ -16,7 +17,7 @@ import ezvcard.parameter.AddressType;
 import ezvcard.property.Address;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -61,6 +62,16 @@ public class AddressScribeTest {
 		withAllFields.setPostalCode("12345");
 		withAllFields.setCountry("USA");
 	}
+	private final Address withMultipleValuesFields = new Address();
+	{
+		withMultipleValuesFields.setPoBox("P.O. Box 1234;");
+		withMultipleValuesFields.getExtendedAddresses().addAll(Arrays.asList("Apt, 11", "P.O. Box 12"));
+		withMultipleValuesFields.getStreetAddresses().addAll(Arrays.asList("123 Main St", "555 Main St"));
+		withMultipleValuesFields.setLocality("Austin");
+		withMultipleValuesFields.setRegion("TX");
+		withMultipleValuesFields.setPostalCode("12345");
+		withMultipleValuesFields.setCountry("USA");
+	}
 	private final Address withSomeFields = new Address();
 	{
 		withSomeFields.setPoBox("P.O. Box 1234;");
@@ -72,6 +83,32 @@ public class AddressScribeTest {
 		withSomeFields.setCountry(null);
 	}
 	private final Address empty = new Address();
+
+	@Test
+	public void getExtendedAddressFull() {
+		String actual = withAllFields.getExtendedAddressFull();
+		String expected = "Apt, 11";
+		assertEquals(expected, actual);
+
+		actual = withMultipleValuesFields.getExtendedAddressFull();
+		expected = "Apt, 11,P.O. Box 12";
+		assertEquals(expected, actual);
+
+		assertNull(withSomeFields.getExtendedAddressFull());
+	}
+
+	@Test
+	public void getStreetAddressFull() {
+		String actual = withAllFields.getStreetAddressFull();
+		String expected = "123 Main St";
+		assertEquals(expected, actual);
+
+		actual = withMultipleValuesFields.getStreetAddressFull();
+		expected = "123 Main St,555 Main St";
+		assertEquals(expected, actual);
+
+		assertNull(withSomeFields.getStreetAddressFull());
+	}
 
 	@Test
 	public void prepareParameters_label() {
@@ -92,7 +129,7 @@ public class AddressScribeTest {
 	@Test
 	public void prepareParameters_type_pref() {
 		Address property = new Address();
-		property.addType(AddressType.PREF);
+		property.getTypes().add(AddressType.PREF);
 
 		//2.1 and 3.0 keep it
 		sensei.assertPrepareParams(property).versions(V2_1, V3_0).expected("TYPE", "pref").run();
@@ -136,8 +173,11 @@ public class AddressScribeTest {
 	@Test
 	public void writeText() {
 		sensei.assertWriteText(withAllFields).run("P.O. Box 1234\\;;Apt\\, 11;123 Main St;Austin;TX;12345;USA");
-		sensei.assertWriteText(withSomeFields).run("P.O. Box 1234\\;;;;Austin;TX;12345;");
-		sensei.assertWriteText(empty).run(";;;;;;");
+		sensei.assertWriteText(withMultipleValuesFields).run("P.O. Box 1234\\;;Apt\\, 11,P.O. Box 12;123 Main St,555 Main St;Austin;TX;12345;USA");
+		sensei.assertWriteText(withSomeFields).run("P.O. Box 1234\\;;;;Austin;TX;12345");
+		sensei.assertWriteText(withSomeFields).includeTrailingSemicolons(true).run("P.O. Box 1234\\;;;;Austin;TX;12345;");
+		sensei.assertWriteText(empty).run("");
+		sensei.assertWriteText(empty).includeTrailingSemicolons(true).run(";;;;;;");
 	}
 
 	@Test
@@ -147,6 +187,17 @@ public class AddressScribeTest {
 		"<pobox>P.O. Box 1234;</pobox>" +
 		"<ext>Apt, 11</ext>" +
 		"<street>123 Main St</street>" +
+		"<locality>Austin</locality>"+
+		"<region>TX</region>" +
+		"<code>12345</code>" +
+		"<country>USA</country>");
+		
+		sensei.assertWriteXml(withMultipleValuesFields).run(
+		"<pobox>P.O. Box 1234;</pobox>" +
+		"<ext>Apt, 11</ext>" +
+		"<ext>P.O. Box 12</ext>" +
+		"<street>123 Main St</street>" +
+		"<street>555 Main St</street>" +
 		"<locality>Austin</locality>"+
 		"<region>TX</region>" +
 		"<code>12345</code>" +
@@ -175,16 +226,18 @@ public class AddressScribeTest {
 	@Test
 	public void writeJson() {
 		sensei.assertWriteJson(withAllFields).run(JCardValue.structured("P.O. Box 1234;", "Apt, 11", "123 Main St", "Austin", "TX", "12345", "USA"));
+		sensei.assertWriteJson(withMultipleValuesFields).run(JCardValue.structured("P.O. Box 1234;", Arrays.asList("Apt, 11", "P.O. Box 12"), Arrays.asList("123 Main St", "555 Main St"), "Austin", "TX", "12345", "USA"));
 		sensei.assertWriteJson(withSomeFields).run(JCardValue.structured("P.O. Box 1234;", "", "", "Austin", "TX", "12345", ""));
 		sensei.assertWriteJson(empty).run(JCardValue.structured("", "", "", "", "", "", ""));
 	}
 
 	@Test
 	public void parseText() {
-		sensei.assertParseText("P.O. Box 1234\\;;Apt\\, 11;123 Main St;Austin;TX;12345;USA").run(is(withAllFields));
-		sensei.assertParseText("P.O. Box 1234\\;;;;Austin;TX;12345;").run(is(withSomeFields));
-		sensei.assertParseText(";;;;;;").run(is(empty));
-		sensei.assertParseText("").run(is(empty));
+		sensei.assertParseText("P.O. Box 1234\\;;Apt\\, 11;123 Main St;Austin;TX;12345;USA").run(withAllFields);
+		sensei.assertParseText("P.O. Box 1234\\;;Apt\\, 11,P.O. Box 12;123 Main St,555 Main St;Austin;TX;12345;USA").run(withMultipleValuesFields);
+		sensei.assertParseText("P.O. Box 1234\\;;;;Austin;TX;12345;").run(withSomeFields);
+		sensei.assertParseText(";;;;;;").run(empty);
+		sensei.assertParseText("").run(empty);
 	}
 
 	@Test
@@ -197,16 +250,27 @@ public class AddressScribeTest {
 		"<locality>Austin</locality>" +
 		"<region>TX</region>" +
 		"<code>12345</code>" +
-		"<country>USA</country>").run(is(withAllFields));
+		"<country>USA</country>").run(withAllFields);
+		
+		sensei.assertParseXml(
+		"<pobox>P.O. Box 1234;</pobox>" +
+		"<ext>Apt, 11</ext>" +
+		"<ext>P.O. Box 12</ext>" +
+		"<street>123 Main St</street>" +
+		"<street>555 Main St</street>" +
+		"<locality>Austin</locality>" +
+		"<region>TX</region>" +
+		"<code>12345</code>" +
+		"<country>USA</country>").run(withMultipleValuesFields);
 
 		sensei.assertParseXml(
 		"<pobox>P.O. Box 1234;</pobox>" +
 		"<locality>Austin</locality>" +
 		"<region>TX</region>" +
 		"<code>12345</code>" +
-		"<country></country>").run(is(withSomeFields));
+		"<country></country>").run(withSomeFields);
 
-		sensei.assertParseXml("").run(is(empty));
+		sensei.assertParseXml("").run(empty);
 		//@formatter:on
 	}
 
@@ -222,7 +286,20 @@ public class AddressScribeTest {
 			"<span class=\"region\">TX</span>" +
 			"<span class=\"postal-code\">12345</span>" +
 			"<span class=\"country-name\">USA</span>" +
-		"</div>").run(is(withAllFields));
+		"</div>").run(withAllFields);
+		
+		sensei.assertParseHtml(
+		"<div>" +
+			"<span class=\"post-office-box\">P.O. Box 1234;</span>" +
+			"<span class=\"extended-address\">Apt, 11</span>" +
+			"<span class=\"extended-address\">P.O. Box 12</span>" +
+			"<span class=\"street-address\">123 Main St</span>" +
+			"<span class=\"street-address\">555 Main St</span>" +
+			"<span class=\"locality\">Austin</span>" +
+			"<span class=\"region\">TX</span>" +
+			"<span class=\"postal-code\">12345</span>" +
+			"<span class=\"country-name\">USA</span>" +
+		"</div>").run(withMultipleValuesFields);
 
 		sensei.assertParseHtml(
 		"<div>" +
@@ -230,9 +307,9 @@ public class AddressScribeTest {
 			"<span class=\"locality\">Austin</span>" +
 			"<span class=\"region\">TX</span>" +
 			"<span class=\"postal-code\">12345</span>" +
-		"</div>").run(is(withSomeFields));
+		"</div>").run(withSomeFields);
 
-		sensei.assertParseHtml("<div></div>").run(is(empty));
+		sensei.assertParseHtml("<div></div>").run(empty);
 		//@formatter:on
 	}
 
@@ -260,7 +337,7 @@ public class AddressScribeTest {
 				assertEquals("TX", property.getRegion());
 				assertEquals("12345", property.getPostalCode());
 				assertEquals("USA", property.getCountry());
-				assertSetEquals(property.getTypes(), AddressType.HOME, AddressType.POSTAL, AddressType.get("other"));
+				assertEquals(Arrays.asList(AddressType.HOME, AddressType.POSTAL, AddressType.get("other")), property.getTypes());
 			}
 		});
 		//@formatter:on
@@ -269,16 +346,19 @@ public class AddressScribeTest {
 	@Test
 	public void parseJson() {
 		JCardValue value = JCardValue.structured("P.O. Box 1234;", "Apt, 11", "123 Main St", "Austin", "TX", "12345", "USA");
-		sensei.assertParseJson(value).run(is(withAllFields));
+		sensei.assertParseJson(value).run(withAllFields);
+
+		value = JCardValue.structured("P.O. Box 1234;", Arrays.asList("Apt, 11", "P.O. Box 12"), Arrays.asList("123 Main St", "555 Main St"), "Austin", "TX", "12345", "USA");
+		sensei.assertParseJson(value).run(withMultipleValuesFields);
 
 		value = JCardValue.structured("P.O. Box 1234;", "", "", "Austin", "TX", "12345", "");
-		sensei.assertParseJson(value).run(is(withSomeFields));
+		sensei.assertParseJson(value).run(withSomeFields);
 
 		value = JCardValue.structured("", null, "", "", "", "", "");
-		sensei.assertParseJson(value).run(is(empty));
+		sensei.assertParseJson(value).run(empty);
 
 		value = JCardValue.structured();
-		sensei.assertParseJson(value).run(is(empty));
+		sensei.assertParseJson(value).run(empty);
 
 		value = JCardValue.structured("P.O. Box 1234;", "Apt, 11", "123 Main St", "Austin");
 		sensei.assertParseJson(value).run(new Check<Address>() {
@@ -292,19 +372,5 @@ public class AddressScribeTest {
 				assertNull(property.getCountry());
 			}
 		});
-	}
-
-	private Check<Address> is(final Address property) {
-		return new Check<Address>() {
-			public void check(Address actual) {
-				assertEquals(property.getPoBox(), actual.getPoBox());
-				assertEquals(property.getExtendedAddress(), actual.getExtendedAddress());
-				assertEquals(property.getStreetAddress(), actual.getStreetAddress());
-				assertEquals(property.getLocality(), actual.getLocality());
-				assertEquals(property.getRegion(), actual.getRegion());
-				assertEquals(property.getPostalCode(), actual.getPostalCode());
-				assertEquals(property.getCountry(), actual.getCountry());
-			}
-		};
 	}
 }

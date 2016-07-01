@@ -9,7 +9,7 @@ import java.util.List;
 import ezvcard.property.ListProperty;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -44,8 +44,8 @@ import ezvcard.property.ListProperty;
 public class ListPropertyAsserter<T extends ListProperty> extends PropertyAsserter<ListPropertyAsserter<T>, T> {
 	private Object[] values;
 
-	public ListPropertyAsserter(List<T> properties) {
-		super(properties);
+	public ListPropertyAsserter(List<T> properties, VCardAsserter asserter) {
+		super(properties, asserter);
 	}
 
 	public ListPropertyAsserter<T> values(Object... values) {

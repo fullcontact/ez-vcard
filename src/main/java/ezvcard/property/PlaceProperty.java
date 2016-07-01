@@ -1,8 +1,8 @@
 package ezvcard.property;
 
-import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
@@ -12,7 +12,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -76,9 +76,15 @@ public class PlaceProperty extends VCardProperty implements HasAltId {
 		setText(text);
 	}
 
-	@Override
-	public Set<VCardVersion> _supportedVersions() {
-		return EnumSet.of(VCardVersion.V4_0);
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public PlaceProperty(PlaceProperty original) {
+		super(original);
+		geoUri = original.geoUri;
+		uri = original.uri;
+		text = original.text;
 	}
 
 	/**
@@ -185,5 +191,41 @@ public class PlaceProperty extends VCardProperty implements HasAltId {
 		if (uri == null && text == null && geoUri == null) {
 			warnings.add(new Warning(8));
 		}
+	}
+
+	@Override
+	protected Map<String, Object> toStringValues() {
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put("geoUri", geoUri);
+		values.put("uri", uri);
+		values.put("text", text);
+		return values;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((geoUri == null) ? 0 : geoUri.hashCode());
+		result = prime * result + ((text == null) ? 0 : text.hashCode());
+		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!super.equals(obj)) return false;
+		PlaceProperty other = (PlaceProperty) obj;
+		if (geoUri == null) {
+			if (other.geoUri != null) return false;
+		} else if (!geoUri.equals(other.geoUri)) return false;
+		if (text == null) {
+			if (other.text != null) return false;
+		} else if (!text.equals(other.text)) return false;
+		if (uri == null) {
+			if (other.uri != null) return false;
+		} else if (!uri.equals(other.uri)) return false;
+		return true;
 	}
 }

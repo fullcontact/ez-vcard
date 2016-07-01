@@ -39,7 +39,7 @@ import ezvcard.property.VCardProperty;
 import ezvcard.util.IOUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -73,14 +73,13 @@ import ezvcard.util.IOUtils;
  * </p>
  * <p>
  * <b>Example:</b>
+ * </p>
  * 
  * <pre class="brush:java">
  * URL url = new URL(&quot;http://example.com&quot;);
  * HCardParser parser = new HCardParser(url);
  * List&lt;VCard&gt; vcards = parser.parseAll();
  * </pre>
- * 
- * </p>
  * @author Michael Angstadt
  * @see <a
  * href="http://microformats.org/wiki/hcard">http://microformats.org/wiki/hcard</a>

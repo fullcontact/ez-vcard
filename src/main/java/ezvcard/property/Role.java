@@ -5,8 +5,10 @@ import lombok.ToString;
 
 import java.util.List;
 
+import ezvcard.parameter.Pid;
+
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -57,6 +59,9 @@ import java.util.List;
  * <b>Supported versions:</b> {@code 2.1, 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-39">RFC 6350 p.39</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-18">RFC 2426 p.18</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.17</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -67,6 +72,14 @@ public class Role extends TextProperty implements HasAltId {
 	 */
 	public Role(String role) {
 		super(role);
+	}
+
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Role(Role original) {
+		super(original);
 	}
 
 	@Override
@@ -104,18 +117,8 @@ public class Role extends TextProperty implements HasAltId {
 	}
 
 	@Override
-	public List<Integer[]> getPids() {
+	public List<Pid> getPids() {
 		return super.getPids();
-	}
-
-	@Override
-	public void addPid(int localId, int clientPidMapRef) {
-		super.addPid(localId, clientPidMapRef);
-	}
-
-	@Override
-	public void removePids() {
-		super.removePids();
 	}
 
 	@Override
@@ -136,5 +139,10 @@ public class Role extends TextProperty implements HasAltId {
 	//@Override
 	public void setAltId(String altId) {
 		parameters.setAltId(altId);
+	}
+
+	@Override
+	public Role copy() {
+		return new Role(this);
 	}
 }

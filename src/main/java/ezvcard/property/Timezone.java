@@ -1,19 +1,22 @@
 package ezvcard.property;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.Warning;
+import ezvcard.parameter.Pid;
 import ezvcard.util.UtcOffset;
 import ezvcard.util.VCardDateFormat;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -70,6 +73,9 @@ import lombok.ToString;
  * </p>
  * 
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-22">RFC 6350 p.22</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-16">RFC 2426 p.16</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.16</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -115,6 +121,16 @@ public class Timezone extends VCardProperty implements HasAltId {
 	 */
 	public Timezone(TimeZone timezone) {
 		this(UtcOffset.parse(timezone), timezone.getID());
+	}
+
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Timezone(Timezone original) {
+		super(original);
+		offset = original.offset;
+		text = original.text;
 	}
 
 	/**
@@ -223,18 +239,8 @@ public class Timezone extends VCardProperty implements HasAltId {
 	}
 
 	@Override
-	public List<Integer[]> getPids() {
+	public List<Pid> getPids() {
 		return super.getPids();
-	}
-
-	@Override
-	public void addPid(int localId, int clientPidMapRef) {
-		super.addPid(localId, clientPidMapRef);
-	}
-
-	@Override
-	public void removePids() {
-		super.removePids();
 	}
 
 	@Override
@@ -265,5 +271,41 @@ public class Timezone extends VCardProperty implements HasAltId {
 		if (offset == null && version == VCardVersion.V2_1) {
 			warnings.add(new Warning(20));
 		}
+	}
+
+	@Override
+	protected Map<String, Object> toStringValues() {
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put("offset", offset);
+		values.put("text", text);
+		return values;
+	}
+
+	@Override
+	public Timezone copy() {
+		return new Timezone(this);
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((offset == null) ? 0 : offset.hashCode());
+		result = prime * result + ((text == null) ? 0 : text.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!super.equals(obj)) return false;
+		Timezone other = (Timezone) obj;
+		if (offset == null) {
+			if (other.offset != null) return false;
+		} else if (!offset.equals(other.offset)) return false;
+		if (text == null) {
+			if (other.text != null) return false;
+		} else if (!text.equals(other.text)) return false;
+		return true;
 	}
 }

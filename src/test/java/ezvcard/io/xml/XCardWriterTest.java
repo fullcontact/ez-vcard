@@ -26,18 +26,20 @@ import org.xml.sax.SAXException;
 import ezvcard.VCard;
 import ezvcard.VCardDataType;
 import ezvcard.VCardVersion;
-import ezvcard.io.AgeType;
-import ezvcard.io.AgeType.AgeScribe;
+import ezvcard.io.AgeProperty;
+import ezvcard.io.AgeProperty.AgeScribe;
 import ezvcard.io.EmbeddedVCardException;
-import ezvcard.io.LuckyNumType;
-import ezvcard.io.LuckyNumType.LuckyNumScribe;
-import ezvcard.io.SalaryType;
-import ezvcard.io.SalaryType.SalaryScribe;
+import ezvcard.io.LuckyNumProperty;
+import ezvcard.io.LuckyNumProperty.LuckyNumScribe;
+import ezvcard.io.SalaryProperty;
+import ezvcard.io.SalaryProperty.SalaryScribe;
 import ezvcard.io.scribe.SkipMeScribe;
 import ezvcard.io.scribe.VCardPropertyScribe;
+import ezvcard.io.text.WriteContext;
 import ezvcard.parameter.AddressType;
 import ezvcard.parameter.EmailType;
 import ezvcard.parameter.ImageType;
+import ezvcard.parameter.Pid;
 import ezvcard.parameter.TelephoneType;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.Address;
@@ -62,7 +64,7 @@ import ezvcard.util.UtcOffset;
 import ezvcard.util.XmlUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -345,7 +347,7 @@ public class XCardWriterTest {
 		note.setParameter(VCardParameters.LABEL, "value");
 		note.setParameter(VCardParameters.LANGUAGE, "en");
 		note.setParameter(VCardParameters.MEDIATYPE, "text/plain");
-		note.addPid(1, 1);
+		note.getPids().add(new Pid(1, 1));
 		note.setParameter(VCardParameters.PREF, "1");
 		note.setParameter(VCardParameters.SORT_AS, "value");
 		note.setParameter(VCardParameters.TYPE, "home");
@@ -549,15 +551,15 @@ public class XCardWriterTest {
 		VCard vcard = new VCard();
 
 		//contains marshal methods and QName
-		LuckyNumType num = new LuckyNumType(24);
+		LuckyNumProperty num = new LuckyNumProperty(24);
 		vcard.addProperty(num);
 
 		//contains marshal methods, but does not have a QName
-		SalaryType salary = new SalaryType(1000000);
+		SalaryProperty salary = new SalaryProperty(1000000);
 		vcard.addProperty(salary);
 
 		//does not contain marshal methods nor QName
-		AgeType age = new AgeType(22);
+		AgeProperty age = new AgeProperty(22);
 		vcard.addProperty(age);
 
 		writer.write(vcard);
@@ -634,7 +636,7 @@ public class XCardWriterTest {
 	@Test
 	public void write_xmlVersion_1_1() throws Exception {
 		StringWriter sw = new StringWriter();
-		XCardWriter writer = new XCardWriter(sw, -1, "1.1");
+		XCardWriter writer = new XCardWriter(sw, null, "1.1");
 		VCard vcard = new VCard();
 		writer.write(vcard);
 		writer.close();
@@ -646,7 +648,7 @@ public class XCardWriterTest {
 	@Test
 	public void write_xmlVersion_invalid() throws Exception {
 		StringWriter sw = new StringWriter();
-		XCardWriter writer = new XCardWriter(sw, -1, "10.17");
+		XCardWriter writer = new XCardWriter(sw, null, "10.17");
 		VCard vcard = new VCard();
 		writer.write(vcard);
 		writer.close();
@@ -701,8 +703,8 @@ public class XCardWriterTest {
 		StructuredName n = new StructuredName();
 		n.setFamily("Perreault");
 		n.setGiven("Simon");
-		n.addSuffix("ing. jr");
-		n.addSuffix("M.Sc.");
+		n.getSuffixes().add("ing. jr");
+		n.getSuffixes().add("M.Sc.");
 		vcard.setStructuredName(n);
 
 		Birthday bday = new Birthday(PartialDate.builder().month(2).date(3).build());
@@ -724,22 +726,22 @@ public class XCardWriterTest {
 		adr.setRegion("QC");
 		adr.setPostalCode("G1V 2M2");
 		adr.setCountry("Canada");
-		adr.addType(AddressType.WORK);
+		adr.getTypes().add(AddressType.WORK);
 		adr.setLabel("Simon Perreault\n2875 boul. Laurier, suite D2-630\nQuebec, QC, Canada\nG1V 2M2");
 		vcard.addAddress(adr);
 
 		TelUri telUri = new TelUri.Builder("+1-418-656-9254").extension("102").build();
 		Telephone tel = new Telephone(telUri);
-		tel.addType(TelephoneType.WORK);
-		tel.addType(TelephoneType.VOICE);
+		tel.getTypes().add(TelephoneType.WORK);
+		tel.getTypes().add(TelephoneType.VOICE);
 		vcard.addTelephoneNumber(tel);
 
 		tel = new Telephone(new TelUri.Builder("+1-418-262-6501").build());
-		tel.addType(TelephoneType.WORK);
-		tel.addType(TelephoneType.TEXT);
-		tel.addType(TelephoneType.VOICE);
-		tel.addType(TelephoneType.CELL);
-		tel.addType(TelephoneType.VIDEO);
+		tel.getTypes().add(TelephoneType.WORK);
+		tel.getTypes().add(TelephoneType.TEXT);
+		tel.getTypes().add(TelephoneType.VOICE);
+		tel.getTypes().add(TelephoneType.CELL);
+		tel.getTypes().add(TelephoneType.VIDEO);
 		vcard.addTelephoneNumber(tel);
 
 		vcard.addEmail("simon.perreault@viagenie.ca", EmailType.WORK);
@@ -791,7 +793,7 @@ public class XCardWriterTest {
 		}
 
 		@Override
-		protected String _writeText(EmbeddedProperty property, VCardVersion version) {
+		protected String _writeText(EmbeddedProperty property, WriteContext context) {
 			return null;
 		}
 

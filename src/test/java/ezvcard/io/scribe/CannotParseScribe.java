@@ -7,12 +7,13 @@ import ezvcard.VCardVersion;
 import ezvcard.io.CannotParseException;
 import ezvcard.io.html.HCardElement;
 import ezvcard.io.json.JCardValue;
+import ezvcard.io.text.WriteContext;
 import ezvcard.io.xml.XCardElement;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.CannotParseProperty;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -55,7 +56,7 @@ public class CannotParseScribe extends VCardPropertyScribe<CannotParseProperty> 
 	}
 
 	@Override
-	protected String _writeText(CannotParseProperty property, VCardVersion version) {
+	protected String _writeText(CannotParseProperty property, WriteContext context) {
 		return "value";
 	}
 

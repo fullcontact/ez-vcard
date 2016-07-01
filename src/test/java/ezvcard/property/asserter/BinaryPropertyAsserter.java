@@ -10,7 +10,7 @@ import ezvcard.parameter.MediaTypeParameter;
 import ezvcard.property.BinaryProperty;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -47,8 +47,8 @@ public class BinaryPropertyAsserter<T extends BinaryProperty> extends PropertyAs
 	private Integer dataLength;
 	private String url;
 
-	public BinaryPropertyAsserter(List<T> properties) {
-		super(properties);
+	public BinaryPropertyAsserter(List<T> properties, VCardAsserter asserter) {
+		super(properties, asserter);
 	}
 
 	public BinaryPropertyAsserter<T> contentType(MediaTypeParameter contentType) {

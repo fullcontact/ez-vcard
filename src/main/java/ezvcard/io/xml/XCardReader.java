@@ -48,10 +48,11 @@ import ezvcard.io.scribe.VCardPropertyScribe.Result;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.VCardProperty;
 import ezvcard.property.Xml;
+import ezvcard.util.ClearableStringBuilder;
 import ezvcard.util.XmlUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -85,6 +86,7 @@ import ezvcard.util.XmlUtils;
  * </p>
  * <p>
  * <b>Example:</b>
+ * </p>
  * 
  * <pre class="brush:java">
  * File file = new File("vcards.xml");
@@ -100,7 +102,6 @@ import ezvcard.util.XmlUtils;
  * }
  * </pre>
  * 
- * </p>
  * @author Michael Angstadt
  * @see <a href="http://tools.ietf.org/html/rfc6351">RFC 6351</a>
  */
@@ -201,7 +202,10 @@ public class XCardReader extends StreamReader {
 
 			//create the transformer
 			try {
-				transformer = TransformerFactory.newInstance().newTransformer();
+				TransformerFactory factory = TransformerFactory.newInstance();
+				XmlUtils.applyXXEProtection(factory);
+
+				transformer = factory.newTransformer();
 			} catch (TransformerConfigurationException e) {
 				//shouldn't be thrown because it's a simple configuration
 				throw new RuntimeException(e);
@@ -237,7 +241,7 @@ public class XCardReader extends StreamReader {
 	private class ContentHandlerImpl extends DefaultHandler {
 		private final Document DOC = XmlUtils.createDocument();
 		private final XCardStructure structure = new XCardStructure();
-		private final StringBuilder characterBuffer = new StringBuilder();
+		private final ClearableStringBuilder characterBuffer = new ClearableStringBuilder();
 
 		private String group;
 		private Element propertyElement, parent;
@@ -261,7 +265,7 @@ public class XCardReader extends StreamReader {
 		@Override
 		public void startElement(String namespace, String localName, String qName, Attributes attributes) throws SAXException {
 			QName qname = new QName(namespace, localName);
-			String textContent = emptyCharacterBuffer();
+			String textContent = characterBuffer.getAndClear();
 
 			if (structure.isEmpty()) {
 				//<vcards>
@@ -347,7 +351,7 @@ public class XCardReader extends StreamReader {
 
 		@Override
 		public void endElement(String namespace, String localName, String qName) throws SAXException {
-			String textContent = emptyCharacterBuffer();
+			String textContent = characterBuffer.getAndClear();
 
 			if (structure.isEmpty()) {
 				//no <vcards> elements were read yet
@@ -434,12 +438,6 @@ public class XCardReader extends StreamReader {
 				}
 				parent = (Element) parent.getParentNode();
 			}
-		}
-
-		private String emptyCharacterBuffer() {
-			String textContent = characterBuffer.toString();
-			characterBuffer.setLength(0);
-			return textContent;
 		}
 
 		private Element createElement(String namespace, String localName, Attributes attributes) {

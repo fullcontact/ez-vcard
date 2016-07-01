@@ -2,22 +2,23 @@ package ezvcard.property;
 
 import java.util.List;
 
+import ezvcard.parameter.Pid;
 import ezvcard.parameter.VCardParameters;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -31,7 +32,7 @@ import lombok.ToString;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -40,21 +41,21 @@ import lombok.ToString;
  * Defines a list of organizations the person belongs to. The list is ordered.
  * It begins with the broadest organization and ends with the most specific.
  * </p>
- * 
+ *
  * <p>
  * <b>Code sample</b>
  * </p>
- * 
+ *
  * <pre class="brush:java">
  * VCard vcard = new VCard();
- * 
+ *
  * Organization org = new Organization();
- * org.addValue(&quot;Google&quot;);
- * org.addValue(&quot;GMail Team&quot;);
- * org.addValue(&quot;Spam Detection Team&quot;);
+ * org.getValues().add(&quot;Google&quot;);
+ * org.getValues().add(&quot;GMail Team&quot;);
+ * org.getValues().add(&quot;Spam Detection Team&quot;);
  * vcard.setOrganization(org);
  * </pre>
- * 
+ *
  * <p>
  * <b>Property name:</b> {@code ORG}
  * </p>
@@ -62,10 +63,25 @@ import lombok.ToString;
  * <b>Supported versions:</b> {@code 2.1, 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-40">RFC 6350 p.40</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-20">RFC 2426 p.20</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.19</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public class Organization extends TextListProperty implements HasAltId {
+	public Organization() {
+		//empty
+	}
+
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Organization(Organization original) {
+		super(original);
+	}
+
 	@Override
 	public String getLanguage() {
 		return super.getLanguage();
@@ -101,18 +117,8 @@ public class Organization extends TextListProperty implements HasAltId {
 	}
 
 	@Override
-	public List<Integer[]> getPids() {
+	public List<Pid> getPids() {
 		return super.getPids();
-	}
-
-	@Override
-	public void addPid(int localId, int clientPidMapRef) {
-		super.addPid(localId, clientPidMapRef);
-	}
-
-	@Override
-	public void removePids() {
-		super.removePids();
 	}
 
 	@Override
@@ -136,35 +142,39 @@ public class Organization extends TextListProperty implements HasAltId {
 	}
 
 	/**
-	 * Gets the string(s) that define how to sort the vCard.
 	 * <p>
-	 * 2.1 and 3.0 vCards should use the {@link SortString SORT-STRING} property
-	 * instead.
+	 * Gets the list that holds string(s) which define how to sort the vCard.
+	 * </p>
+	 * <p>
+	 * 2.1 and 3.0 vCards should use the {@link SortString} property instead.
 	 * </p>
 	 * <p>
 	 * <b>Supported versions:</b> {@code 4.0}
 	 * </p>
-	 * @return the sort string(s) or empty list if there are none
-	 * @see VCardParameters#getSortAs
+	 * @return the sort string(s) (this list is mutable)
 	 */
 	public List<String> getSortAs() {
 		return parameters.getSortAs();
 	}
 
 	/**
-	 * Sets the string(s) that define how to sort the vCard. These strings
-	 * correspond to the values that are in this property.
 	 * <p>
-	 * 2.1 and 3.0 vCards should use the {@link SortString SORT-STRING} property
-	 * instead.
+	 * Sets the sort string for this property.
+	 * </p>
+	 * <p>
+	 * 2.1 and 3.0 vCards should use the {@link SortString} property instead.
 	 * </p>
 	 * <p>
 	 * <b>Supported versions:</b> {@code 4.0}
 	 * </p>
-	 * @param names the names or empty parameter list to remove
-	 * @see VCardParameters#setSortAs
+	 * @param sortString the sort string or null to remove
 	 */
-	public void setSortAs(String... names) {
-		parameters.setSortAs(names);
+	public void setSortAs(String sortString) {
+		parameters.setSortAs(sortString);
+	}
+
+	@Override
+	public Organization copy() {
+		return new Organization(this);
 	}
 }

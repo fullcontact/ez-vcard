@@ -53,17 +53,17 @@ String str = Ezvcard.write(vcard).version(VCardVersion.V4_0).go();
 
 # News
 
+**May 17, 2016**
+
+[Version 0.9.10](https://github.com/mangstadt/ez-vcard/wiki/Downloads) released.  This release adds a number of improvements and bug fixes.  Please see the [changelog](https://github.com/mangstadt/ez-vcard/wiki/Changelog) for details.
+
+**February 6, 2016**
+
+[Version 0.9.9](https://github.com/mangstadt/ez-vcard/wiki/Downloads) released.  This release adds a number of improvements and bug fixes.  Please see the [changelog](https://github.com/mangstadt/ez-vcard/wiki/Changelog) for details.
+
 **November 14, 2015**
 
-[Version 0.9.8](https://github.com/mangstadt/ez-vcard/wiki/Downloads) released.  This released fixes a few miscellaneous bugs.  Please see the [changelog](https://github.com/mangstadt/ez-vcard/wiki/Changelog) for details.
-
-**September 13, 2015**
-
-[Version 0.9.7](https://github.com/mangstadt/ez-vcard/wiki/Downloads) released.  This released fixes a few miscellaneous bugs.  Please see the [changelog](https://github.com/mangstadt/ez-vcard/wiki/Changelog) for details.
-
-**March 21, 2015**
-
-Due to the [impending shutdown of Google Code](http://google-opensource.blogspot.com/2015/03/farewell-to-google-code.html), ez-vcard has moved to Github!  Please bear with me as I work out the kinks. :)
+[Version 0.9.8](https://github.com/mangstadt/ez-vcard/wiki/Downloads) released.  This release fixes a few miscellaneous bugs.  Please see the [changelog](https://github.com/mangstadt/ez-vcard/wiki/Changelog) for details.
 
 [Old News](https://github.com/mangstadt/ez-vcard/wiki/Old-News)
 
@@ -73,7 +73,7 @@ Due to the [impending shutdown of Google Code](http://google-opensource.blogspot
 <dependency>
    <groupId>com.googlecode.ez-vcard</groupId>
    <artifactId>ez-vcard</artifactId>
-   <version>0.9.8</version>
+   <version>0.9.10</version>
 </dependency>
 ```
 
@@ -84,6 +84,8 @@ ez-vcard uses [Maven](http://maven.apache.org/) as its build tool, and adheres t
 To build the project: `mvn compile`  
 To run the unit tests: `mvn test`  
 To build a JAR: `mvn package`
+
+**Eclipse users:** Due to a quirk in the build process, before running the `eclipse:eclipse` goal, you must tweak some of the `<resource>` definitions in the POM file.  See the comments in the POM file for details.
 
 # Questions / Feedback
 
@@ -118,25 +120,32 @@ Joel Orlina
 
 **Contributors**  
 amarnathr ([hCard template bug](https://github.com/mangstadt/ez-vcard/issues/16))  
+[bgorven](https://github.com/bgorven) (jackson-databind integration, jackson pretty printing, [round-trip testing](https://github.com/mangstadt/ez-vcard/pull/49))  
 Moritz Bechler (Geo URI bug fix)  
 Kiran Kumar Bhushan (quoted-printable bug)  
+[Sean Boylan](https://github.com/seanboylan) ([XXE vulnerability](https://github.com/mangstadt/ez-vcard/issues/55))  
 Florian Brunner ([OSGi metadata](https://github.com/mangstadt/ez-vcard/issues/11))  
 Pratyush Chandra ([ez-vcard-android](http://github.com/mangstadt/ez-vcard-android))  
 Lívio Cipriano ([Issue 35](https://github.com/mangstadt/ez-vcard/issues/35))  
 [cmargenau](https://github.com/cmargenau) ([XML 1.1 support](https://github.com/mangstadt/ez-vcard/issues/29))  
+[DerBlade](https://github.com/DerBlade) ([missing parameter method](https://github.com/mangstadt/ez-vcard/issues/52))  
 Juliane Dombrowski ([quoted-printable line folding](https://github.com/mangstadt/ez-vcard/issues/9))  
 F. Gaffron ([quoted-printable charsets](https://github.com/mangstadt/ez-vcard/issues/12))  
+[isindir](https://github.com/isindir) ([Javadoc fix](https://github.com/mangstadt/ez-vcard/pull/53))  
 knutolav ([Issue 1](https://github.com/mangstadt/ez-vcard/issues/1), [Issue 2](https://github.com/mangstadt/ez-vcard/issues/2))  
+[Nico Lehmann](https://github.com/ekorn) ([Windows 10 Contacts compatibility issue](https://github.com/mangstadt/ez-vcard/issues/56))  
 David Nault ([Issue 3](https://github.com/mangstadt/ez-vcard/issues/3), [Issue 7](https://github.com/mangstadt/ez-vcard/issues/7))  
-[rfc2822](https://github.com/rfc2822) ([folding line issue](https://github.com/mangstadt/ez-vcard/issues/30), [IMPP issue](https://github.com/mangstadt/ez-vcard/issues/32))  
+[rfc2822](https://github.com/rfc2822) ([folding line issue](https://github.com/mangstadt/ez-vcard/issues/30), [IMPP issue](https://github.com/mangstadt/ez-vcard/issues/32), [trailing semicolons issue](https://github.com/mangstadt/ez-vcard/issues/57))  
+[Steven Ruppert](https://github.com/blendmaster) ([folding surrogate character pairs](https://github.com/mangstadt/ez-vcard/pull/36), [parsing tel URIs](https://github.com/mangstadt/ez-vcard/pull/38))  
 Matt Siegel ([base64 property value bug](https://github.com/mangstadt/ez-vcard/issues/21), [unit test bug](https://github.com/mangstadt/ez-vcard/issues/22))  
 David Spieler ([hCard template bug](https://github.com/mangstadt/ez-vcard/issues/19))  
 Tom Vogel ([quoted-printable charsets](https://github.com/mangstadt/ez-vcard/issues/10))  
-Eike Weyl (Wiki fix)  
+Eike Weyl (Wiki fix, Javadoc fix)  
 沈健 (plain-text vCard formatting issue)
 
 **Caffeine Suppliers**  
 'feine  
+Starbucks  
 Volo Coffeehouse
 
 _No animals were harmed in the making of this library._

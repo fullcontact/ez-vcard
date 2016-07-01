@@ -8,12 +8,13 @@ import ezvcard.VCardVersion;
 import ezvcard.io.CannotParseException;
 import ezvcard.io.html.HCardElement;
 import ezvcard.io.json.JCardValue;
+import ezvcard.io.text.WriteContext;
 import ezvcard.io.xml.XCardElement;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.Revision;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -52,8 +53,9 @@ public class RevisionScribe extends VCardPropertyScribe<Revision> {
 	}
 
 	@Override
-	protected String _writeText(Revision property, VCardVersion version) {
-		return write(property, false);
+	protected String _writeText(Revision property, WriteContext context) {
+		boolean extended = (context.getVersion() == VCardVersion.V3_0);
+		return write(property, extended);
 	}
 
 	@Override
@@ -114,7 +116,7 @@ public class RevisionScribe extends VCardPropertyScribe<Revision> {
 
 	private Revision parse(String value) {
 		if (value == null || value.length() == 0) {
-			return new Revision(null);
+			return new Revision((Date) null);
 		}
 
 		try {

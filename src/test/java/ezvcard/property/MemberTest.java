@@ -1,6 +1,6 @@
 package ezvcard.property;
 
-import static ezvcard.util.TestUtils.assertValidate;
+import static ezvcard.property.PropertySensei.assertValidate;
 
 import org.junit.Test;
 
@@ -8,7 +8,7 @@ import ezvcard.VCard;
 import ezvcard.VCardVersion;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@ import ezvcard.VCardVersion;
 public class MemberTest {
 	@Test
 	public void validate() {
-		Member empty = new Member(null);
+		Member empty = new Member((String) null);
 		assertValidate(empty).versions(VCardVersion.V2_1, VCardVersion.V3_0).run(2, 8, 17);
 		assertValidate(empty).versions(VCardVersion.V4_0).run(8, 17);
 

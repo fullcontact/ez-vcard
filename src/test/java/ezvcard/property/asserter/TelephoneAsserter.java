@@ -1,7 +1,6 @@
 package ezvcard.property.asserter;
 
-import static ezvcard.util.TestUtils.assertSetEquals;
-import static org.junit.Assert.assertEquals;
+import static java.util.Arrays.asList;
 
 import java.util.List;
 
@@ -10,7 +9,7 @@ import ezvcard.property.Telephone;
 import ezvcard.util.TelUri;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -41,41 +40,28 @@ import ezvcard.util.TelUri;
 /**
  * @author Michael Angstadt
  */
-public class TelephoneAsserter extends PropertyAsserter<TelephoneAsserter, Telephone> {
-	private String text;
-	private TelUri uri;
-	private TelephoneType[] types;
-
-	public TelephoneAsserter(List<Telephone> properties) {
-		super(properties);
+public class TelephoneAsserter extends PropertyImplAsserter<TelephoneAsserter, Telephone> {
+	public TelephoneAsserter(List<Telephone> properties, VCardAsserter asserter) {
+		super(properties, asserter);
 	}
 
 	public TelephoneAsserter text(String text) {
-		this.text = text;
+		expected.setText(text);
 		return this_;
 	}
 
 	public TelephoneAsserter uri(TelUri uri) {
-		this.uri = uri;
+		expected.setUri(uri);
 		return this_;
 	}
 
 	public TelephoneAsserter types(TelephoneType... types) {
-		this.types = types;
+		expected.getTypes().addAll(asList(types));
 		return this_;
 	}
 
 	@Override
-	protected void _run(Telephone property) {
-		assertEquals(text, property.getText());
-		assertEquals(uri, property.getUri());
-		assertSetEquals(property.getTypes(), types);
-	}
-
-	@Override
-	protected void _reset() {
-		text = null;
-		uri = null;
-		types = new TelephoneType[0];
+	protected Telephone _newInstance() {
+		return new Telephone((String) null);
 	}
 }

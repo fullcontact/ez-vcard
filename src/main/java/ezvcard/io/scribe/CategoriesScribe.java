@@ -6,7 +6,7 @@ import ezvcard.io.html.HCardElement;
 import ezvcard.property.Categories;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ public class CategoriesScribe extends ListPropertyScribe<Categories> {
 		}
 
 		Categories property = _newInstance();
-		property.addValue(value);
+		property.getValues().add(value);
 		return property;
 	}
 

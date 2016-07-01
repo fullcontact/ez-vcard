@@ -14,13 +14,14 @@ import ezvcard.VCardDataType;
 import ezvcard.VCardVersion;
 import ezvcard.io.CannotParseException;
 import ezvcard.io.json.JCardValue;
+import ezvcard.io.text.WriteContext;
 import ezvcard.io.xml.XCardElement;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.Xml;
 import ezvcard.util.XmlUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -59,7 +60,7 @@ public class XmlScribe extends VCardPropertyScribe<Xml> {
 	}
 
 	@Override
-	protected String _writeText(Xml property, VCardVersion version) {
+	protected String _writeText(Xml property, WriteContext context) {
 		Document value = property.getValue();
 		if (value == null) {
 			return "";
@@ -75,7 +76,7 @@ public class XmlScribe extends VCardPropertyScribe<Xml> {
 		try {
 			return new Xml(value);
 		} catch (SAXException e) {
-			throw new CannotParseException("Cannot parse value as XML: " + value);
+			throw new CannotParseException(21);
 		}
 	}
 
@@ -90,7 +91,7 @@ public class XmlScribe extends VCardPropertyScribe<Xml> {
 		Xml xml = new Xml(element.element());
 
 		//remove the <parameters> element
-		Element root = XmlUtils.getRootElement(xml.getValue());
+		Element root = xml.getValue().getDocumentElement();
 		for (Element child : XmlUtils.toElementList(root.getChildNodes())) {
 			if ("parameters".equals(child.getLocalName()) && VCardVersion.V4_0.getXmlNamespace().equals(child.getNamespaceURI())) {
 				root.removeChild(child);
@@ -115,9 +116,9 @@ public class XmlScribe extends VCardPropertyScribe<Xml> {
 	protected Xml _parseJson(JCardValue value, VCardDataType dataType, VCardParameters parameters, List<String> warnings) {
 		try {
 			String xml = value.asSingle();
-			return (xml == null) ? new Xml((Document) null) : new Xml(xml);
+			return (xml.length() == 0) ? new Xml((Document) null) : new Xml(xml);
 		} catch (SAXException e) {
-			throw new CannotParseException("Cannot parse value as XML: " + value);
+			throw new CannotParseException(22);
 		}
 	}
 

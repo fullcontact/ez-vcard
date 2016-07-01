@@ -1,25 +1,37 @@
 package ezvcard.property;
 
-import static ezvcard.util.TestUtils.assertSetEquals;
-import static ezvcard.util.TestUtils.assertValidate;
+import static ezvcard.property.PropertySensei.assertEqualsMethod;
+import static ezvcard.property.PropertySensei.assertNothingIsEqual;
+import static ezvcard.property.PropertySensei.assertValidate;
+import static ezvcard.util.TestUtils.assertEqualsAndHash;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-import java.util.EnumSet;
-import java.util.Set;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.junit.Test;
 
+import ezvcard.SupportedVersions;
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
+import ezvcard.parameter.VCardParameters;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -93,10 +105,23 @@ public class VCardPropertyTest {
 	@Test
 	public void getSupportedVersions() {
 		VCardPropertyImpl withoutSupportedVersions = new VCardPropertyImpl();
-		assertSetEquals(withoutSupportedVersions.getSupportedVersions(), VCardVersion.values());
+		assertArrayEquals(VCardVersion.values(), withoutSupportedVersions.getSupportedVersions());
 
 		Version3Property withSupportedVersions = new Version3Property();
-		assertSetEquals(withSupportedVersions.getSupportedVersions(), VCardVersion.V3_0);
+		assertArrayEquals(new VCardVersion[] { VCardVersion.V3_0 }, withSupportedVersions.getSupportedVersions());
+	}
+
+	@Test
+	public void isSupportedBy() {
+		VCardPropertyImpl withoutSupportedVersions = new VCardPropertyImpl();
+		for (VCardVersion version : VCardVersion.values()) {
+			assertTrue(withoutSupportedVersions.isSupportedBy(version));
+		}
+
+		Version3Property withSupportedVersions = new Version3Property();
+		assertFalse(withSupportedVersions.isSupportedBy(VCardVersion.V2_1));
+		assertTrue(withSupportedVersions.isSupportedBy(VCardVersion.V3_0));
+		assertFalse(withSupportedVersions.isSupportedBy(VCardVersion.V4_0));
 	}
 
 	@Test
@@ -106,6 +131,45 @@ public class VCardPropertyTest {
 
 		property.setGroup("group");
 		assertEquals("group", property.getGroup());
+	}
+
+	@Test
+	public void parameters() {
+		VCardPropertyImpl property = new VCardPropertyImpl();
+		assertEquals(new VCardParameters(), property.getParameters());
+
+		try {
+			property.setParameters(null);
+			fail("NPE expected.");
+		} catch (NullPointerException e) {
+			//expected
+		}
+
+		VCardParameters parameters = new VCardParameters();
+		property.setParameters(parameters);
+		assertSame(parameters, property.getParameters());
+
+		property.addParameter("PARAM", "value");
+		property.addParameter("PARAM", "value2");
+		assertEquals("value", property.getParameter("PARAM"));
+		assertEquals(Arrays.asList("value", "value2"), property.getParameters("PARAM"));
+		VCardParameters expected = new VCardParameters();
+		expected.put("PARAM", "value");
+		expected.put("PARAM", "value2");
+		assertEquals(expected, property.getParameters());
+
+		property.setParameter("PARAM", "one");
+		assertEquals("one", property.getParameter("PARAM"));
+		assertEquals(Arrays.asList("one"), property.getParameters("PARAM"));
+		expected = new VCardParameters();
+		expected.put("PARAM", "one");
+		assertEquals(expected, property.getParameters());
+
+		property.removeParameter("PARAM");
+		assertNull(property.getParameter("PARAM"));
+		assertEquals(Arrays.asList(), property.getParameters("PARAM"));
+		expected = new VCardParameters();
+		assertEquals(expected, property.getParameters());
 	}
 
 	@Test
@@ -127,14 +191,121 @@ public class VCardPropertyTest {
 		assertEquals(0, null1.compareTo(null2));
 	}
 
-	private class VCardPropertyImpl extends VCardProperty {
+	@Test
+	public void copy() {
+		CopyConstructorTest property = new CopyConstructorTest("value");
+		property.setGroup("group");
+		property.getParameters().setLanguage("en-us");
+		CopyConstructorTest copy = (CopyConstructorTest) property.copy();
+
+		assertNotSame(property, copy);
+		assertEquals(property.value, copy.value);
+
+		assertEquals(property.getGroup(), copy.getGroup());
+		assertNotSame(property.getParameters(), copy.getParameters());
+		assertEquals(property.getParameters(), copy.getParameters());
+	}
+
+	@Test
+	public void copy_constructor_throws_exception() {
+		RuntimeException exception = new RuntimeException();
+		CopyConstructorThrowsExceptionTest property = new CopyConstructorThrowsExceptionTest(exception);
+		try {
+			property.copy();
+			fail("Expected an exception to be thrown.");
+		} catch (UnsupportedOperationException e) {
+			assertTrue(e.getCause() instanceof InvocationTargetException);
+			assertSame(e.getCause().getCause(), exception);
+		}
+	}
+
+	@Test
+	public void copy_no_copy_constructor() {
+		VCardPropertyImpl property = new VCardPropertyImpl();
+		try {
+			property.copy();
+			fail("Expected an exception to be thrown.");
+		} catch (UnsupportedOperationException e) {
+			assertTrue(e.getCause() instanceof NoSuchMethodException);
+		}
+	}
+
+	@Test
+	public void toStringValues() {
+		VCardPropertyImpl property = new VCardPropertyImpl();
+		assertTrue(property.toStringValues().isEmpty());
+	}
+
+	@Test
+	public void toString_() {
+		VCardProperty property = new VCardPropertyImpl();
+		assertEquals(VCardPropertyImpl.class.getName() + " [ group=null | parameters={} ]", property.toString());
+
+		property = new CopyConstructorTest("text");
+		property.setGroup("group");
+		property.addParameter("PARAM", "value");
+		assertEquals(CopyConstructorTest.class.getName() + " [ group=group | parameters={PARAM=[value]} | value=text ]", property.toString());
+	}
+
+	@Test
+	public void equals() {
+		//@formatter:off
+		assertNothingIsEqual(new CopyConstructorTest(""));
+		
+		assertEqualsMethod(VCardPropertyImpl.class)
+		.constructor();
+		//@formatter:on
+	}
+
+	@Test
+	public void equals_group_ignore_case() {
+		VCardPropertyImpl one = new VCardPropertyImpl();
+		one.setGroup("GROUP");
+		VCardPropertyImpl two = new VCardPropertyImpl();
+		two.setGroup("group");
+		assertEqualsAndHash(one, two);
+	}
+
+	private static class CopyConstructorTest extends VCardProperty {
+		private String value;
+
+		public CopyConstructorTest(String value) {
+			this.value = value;
+		}
+
+		@SuppressWarnings("unused")
+		public CopyConstructorTest(CopyConstructorTest original) {
+			super(original);
+			value = original.value;
+		}
+
+		@Override
+		protected Map<String, Object> toStringValues() {
+			Map<String, Object> values = new LinkedHashMap<String, Object>();
+			values.put("value", value);
+			return values;
+		}
+	}
+
+	private static class CopyConstructorThrowsExceptionTest extends VCardProperty {
+		private final RuntimeException e;
+
+		public CopyConstructorThrowsExceptionTest(RuntimeException e) {
+			this.e = e;
+		}
+
+		@SuppressWarnings("unused")
+		public CopyConstructorThrowsExceptionTest(CopyConstructorThrowsExceptionTest original) {
+			throw original.e;
+		}
+	}
+
+	public static class VCardPropertyImpl extends VCardProperty {
 		//empty
 	}
 
+	@SupportedVersions(VCardVersion.V3_0)
 	private class Version3Property extends VCardProperty {
-		@Override
-		public Set<VCardVersion> _supportedVersions() {
-			return EnumSet.of(VCardVersion.V3_0);
-		}
+		//empty
 	}
 }

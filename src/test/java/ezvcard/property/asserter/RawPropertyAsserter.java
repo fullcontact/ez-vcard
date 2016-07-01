@@ -1,14 +1,12 @@
 package ezvcard.property.asserter;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.util.List;
 
+import ezvcard.VCardDataType;
 import ezvcard.property.RawProperty;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -39,28 +37,27 @@ import ezvcard.property.RawProperty;
 /**
  * @author Michael Angstadt
  */
-public class RawPropertyAsserter extends PropertyAsserter<RawPropertyAsserter, RawProperty> {
+public class RawPropertyAsserter extends PropertyImplAsserter<RawPropertyAsserter, RawProperty> {
 	private final String name;
-	private String value;
 
-	public RawPropertyAsserter(List<RawProperty> properties, String name) {
-		super(properties);
+	public RawPropertyAsserter(List<RawProperty> properties, String name, VCardAsserter asserter) {
+		super(properties, asserter);
 		this.name = name;
+		expected = _newInstance();
 	}
 
 	public RawPropertyAsserter value(String value) {
-		this.value = value;
+		expected.setValue(value);
+		return this_;
+	}
+
+	public RawPropertyAsserter dataType(VCardDataType dataType) {
+		expected.setDataType(dataType);
 		return this_;
 	}
 
 	@Override
-	protected void _run(RawProperty property) {
-		assertTrue(name.equalsIgnoreCase(property.getPropertyName()));
-		assertEquals(value, property.getValue());
-	}
-
-	@Override
-	protected void _reset() {
-		value = null;
+	protected RawProperty _newInstance() {
+		return new RawProperty(name, null);
 	}
 }

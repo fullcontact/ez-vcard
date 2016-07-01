@@ -1,5 +1,6 @@
 package ezvcard.util;
 
+import static ezvcard.util.TestUtils.assertEqualsAndHash;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -7,10 +8,12 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
+
 import org.junit.Test;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -83,8 +86,40 @@ public class TelUriTest {
 	}
 
 	@Test
-	public void parse_params() {
+	public void parse_multiple_params() {
 		TelUri uri = TelUri.parse("tel:+1-212-555-0101;param1=value1;param2=value2");
+		assertEquals("+1-212-555-0101", uri.getNumber());
+		assertNull(uri.getExtension());
+		assertNull(uri.getPhoneContext());
+		assertNull(uri.getIsdnSubaddress());
+		assertEquals("value1", uri.getParameter("param1"));
+		assertEquals("value2", uri.getParameter("param2"));
+		Map<String, String> params = new HashMap<String, String>();
+		params.put("param1", "value1");
+		params.put("param2", "value2");
+		assertEquals(params, uri.getParameters());
+	}
+
+	@Test
+	public void parse_param_no_value() {
+		TelUri uri = TelUri.parse("tel:+1-212-555-0101;param1;param2=;param3=");
+		assertEquals("+1-212-555-0101", uri.getNumber());
+		assertNull(uri.getExtension());
+		assertNull(uri.getPhoneContext());
+		assertNull(uri.getIsdnSubaddress());
+		assertEquals("", uri.getParameter("param1"));
+		assertEquals("", uri.getParameter("param2"));
+		assertEquals("", uri.getParameter("param3"));
+		Map<String, String> params = new HashMap<String, String>();
+		params.put("param1", "");
+		params.put("param2", "");
+		params.put("param3", "");
+		assertEquals(params, uri.getParameters());
+	}
+
+	@Test
+	public void parse_param_multiple_semicolons() {
+		TelUri uri = TelUri.parse("tel:+1-212-555-0101;param1=value1;;param2=value2;");
 		assertEquals("+1-212-555-0101", uri.getNumber());
 		assertNull(uri.getExtension());
 		assertNull(uri.getPhoneContext());
@@ -209,5 +244,17 @@ public class TelUriTest {
 	public void toString_special_chars_in_param_value() {
 		TelUri uri = new TelUri.Builder("+1-212-555-0101").parameter("param", "with = special & chars " + (char) 128).build();
 		assertEquals("tel:+1-212-555-0101;param=with%20%3d%20special%20&%20chars%20%80", uri.toString());
+	}
+
+	@Test
+	public void equals_contract() {
+		EqualsVerifier.forClass(TelUri.class).usingGetClass().verify();
+	}
+
+	@Test
+	public void equals_ignore_case() {
+		TelUri one = new TelUri.Builder("+18001234567").isdnSubaddress("B").parameter("NAME", "VALUE").build();
+		TelUri two = new TelUri.Builder("+18001234567").isdnSubaddress("b").parameter("name", "value").build();
+		assertEqualsAndHash(one, two);
 	}
 }

@@ -23,7 +23,7 @@ import ezvcard.property.Uid;
 import ezvcard.util.UtcOffset;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -101,7 +101,7 @@ public class JohnDoeVCard {
 		StructuredName n = new StructuredName();
 		n.setFamily("Doe");
 		n.setGiven("Jonathan");
-		n.addPrefix("Mr");
+		n.getPrefixes().add("Mr");
 		vcard.setStructuredName(n);
 
 		vcard.setFormattedName("Jonathan Doe");
@@ -119,7 +119,7 @@ public class JohnDoeVCard {
 		adr.setPostalCode("12345");
 		adr.setCountry("USA");
 		adr.setLabel("123 Wall St.\nNew York, NY 12345\nUSA");
-		adr.addType(AddressType.WORK);
+		adr.getTypes().add(AddressType.WORK);
 		vcard.addAddress(adr);
 
 		adr = new Address();
@@ -129,7 +129,7 @@ public class JohnDoeVCard {
 		adr.setPostalCode("54321");
 		adr.setCountry("USA");
 		adr.setLabel("123 Main St.\nAlbany, NY 54321\nUSA");
-		adr.addType(AddressType.HOME);
+		adr.getTypes().add(AddressType.HOME);
 		vcard.addAddress(adr);
 
 		vcard.addTelephoneNumber("1-555-555-1234", TelephoneType.WORK);

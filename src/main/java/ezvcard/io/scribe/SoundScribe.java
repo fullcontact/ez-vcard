@@ -9,7 +9,7 @@ import ezvcard.property.Sound;
 import ezvcard.util.DataUri;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -93,7 +93,7 @@ public class SoundScribe extends BinaryPropertyScribe<Sound, SoundType> {
 		SoundType mediaType = (type.length() == 0) ? null : _mediaTypeFromMediaTypeParameter(type);
 
 		try {
-			DataUri uri = new DataUri(src);
+			DataUri uri = DataUri.parse(src);
 			mediaType = _mediaTypeFromMediaTypeParameter(uri.getContentType());
 			return new Sound(uri.getData(), mediaType);
 		} catch (IllegalArgumentException e) {

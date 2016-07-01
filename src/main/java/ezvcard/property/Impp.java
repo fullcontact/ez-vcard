@@ -2,30 +2,31 @@ package ezvcard.property;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.EnumSet;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
+import ezvcard.SupportedVersions;
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.Warning;
 import ezvcard.parameter.ImppType;
+import ezvcard.parameter.Pid;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -39,33 +40,34 @@ import lombok.ToString;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
 /**
  * <p>
- * Defines an instant messenger handle. The handle is represented as a URI in the
- * format "{@code <PROTOCOL>:<HANDLE>}". For example, a Yahoo! Messenger handle
- * of "johndoe@yahoo.com" would look like this: "ymsgr:johndoe@yahoo.com".
+ * Defines an instant messenger handle. The handle is represented as a URI in
+ * the format "{@code <PROTOCOL>:<HANDLE>}". For example, a Yahoo! Messenger
+ * handle of "johndoe@yahoo.com" would look like this:
+ * "ymsgr:johndoe@yahoo.com".
  * </p>
- * 
+ *
  * <p>
  * <b>Code sample</b>
  * </p>
- * 
+ *
  * <pre class="brush:java">
  * VCard vcard = new VCard();
- * 
+ *
  * //URI
  * Impp impp = new Impp(&quot;aim:johndoe@aol.com&quot;);
  * vcard.addImpp(impp);
- * 
+ *
  * //static factory methods
  * impp = Impp.msn(&quot;janedoe@msn.com&quot;);
  * vcard.addImpp(impp);
  * </pre>
- * 
+ *
  * <p>
  * <b>Property name:</b> {@code IMPP}
  * </p>
@@ -73,9 +75,12 @@ import lombok.ToString;
  * <b>Supported versions:</b> {@code 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-36">RFC 6350 p.36</a>
+ * @see <a href="http://tools.ietf.org/html/rfc4770">RFC 4770</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
+@SupportedVersions({ VCardVersion.V3_0, VCardVersion.V4_0 })
 public class Impp extends VCardProperty implements HasAltId {
 	private static final String AIM = "aim";
 	private static final String ICQ = "icq";
@@ -117,9 +122,13 @@ public class Impp extends VCardProperty implements HasAltId {
 		setUri(protocol, handle);
 	}
 
-	@Override
-	public Set<VCardVersion> _supportedVersions() {
-		return EnumSet.of(VCardVersion.V3_0, VCardVersion.V4_0);
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Impp(Impp original) {
+		super(original);
+		uri = original.uri;
 	}
 
 	/**
@@ -330,32 +339,16 @@ public class Impp extends VCardProperty implements HasAltId {
 	}
 
 	/**
-	 * Gets all the TYPE parameters.
-	 * @return the TYPE parameters or empty set if there are none
+	 * Gets the list that stores this property's IMPP types (TYPE parameters).
+	 * @return the IMPP types (e.g. "HOME", "WORK") (this list is mutable)
 	 */
-	public Set<ImppType> getTypes() {
-		Set<String> values = parameters.getTypes();
-		Set<ImppType> types = new HashSet<ImppType>(values.size());
-		for (String value : values) {
-			types.add(ImppType.get(value));
-		}
-		return types;
-	}
-
-	/**
-	 * Adds a TYPE parameter.
-	 * @param type the TYPE parameter to add
-	 */
-	public void addType(ImppType type) {
-		parameters.addType(type.getValue());
-	}
-
-	/**
-	 * Removes a TYPE parameter.
-	 * @param type the TYPE parameter to remove
-	 */
-	public void removeType(ImppType type) {
-		parameters.removeType(type.getValue());
+	public List<ImppType> getTypes() {
+		return parameters.new TypeParameterList<ImppType>() {
+			@Override
+			protected ImppType _asObject(String value) {
+				return ImppType.get(value);
+			}
+		};
 	}
 
 	/**
@@ -381,18 +374,8 @@ public class Impp extends VCardProperty implements HasAltId {
 	}
 
 	@Override
-	public List<Integer[]> getPids() {
+	public List<Pid> getPids() {
 		return super.getPids();
-	}
-
-	@Override
-	public void addPid(int localId, int clientPidMapRef) {
-		super.addPid(localId, clientPidMapRef);
-	}
-
-	@Override
-	public void removePids() {
-		super.removePids();
 	}
 
 	@Override
@@ -420,5 +403,36 @@ public class Impp extends VCardProperty implements HasAltId {
 		if (uri == null) {
 			warnings.add(new Warning(8));
 		}
+	}
+
+	@Override
+	protected Map<String, Object> toStringValues() {
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put("uri", uri);
+		return values;
+	}
+
+	@Override
+	public Impp copy() {
+		return new Impp(this);
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!super.equals(obj)) return false;
+		Impp other = (Impp) obj;
+		if (uri == null) {
+			if (other.uri != null) return false;
+		} else if (!uri.equals(other.uri)) return false;
+		return true;
 	}
 }

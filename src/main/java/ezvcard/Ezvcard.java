@@ -35,7 +35,7 @@ import ezvcard.io.xml.XCardWriter;
 import ezvcard.util.IOUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -68,9 +68,8 @@ import ezvcard.util.IOUtils;
  * Contains chaining factory methods for parsing/writing vCards. They are
  * convenience methods that make use of the following classes:
  * </p>
- * 
- * 
  * <table class="simpleTable">
+ * <caption>Classes used by this class</caption>
  * <tr>
  * <th></th>
  * <th>Reading</th>
@@ -106,24 +105,36 @@ public final class Ezvcard {
 	public static final String VERSION;
 
 	/**
+	 * The Maven group ID.
+	 */
+	public static final String GROUP_ID;
+
+	/**
+	 * The Maven artifact ID.
+	 */
+	public static final String ARTIFACT_ID;
+
+	/**
 	 * The project webpage.
 	 */
 	public static final String URL;
 
 	static {
 		InputStream in = null;
+		Properties props = new Properties();
 		try {
 			in = Ezvcard.class.getResourceAsStream("ez-vcard.properties");
-			Properties props = new Properties();
 			props.load(in);
-
-			VERSION = props.getProperty("version");
-			URL = props.getProperty("url");
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
 			IOUtils.closeQuietly(in);
 		}
+
+		VERSION = props.getProperty("version");
+		GROUP_ID = props.getProperty("groupId");
+		ARTIFACT_ID = props.getProperty("artifactId");
+		URL = props.getProperty("url");
 	}
 
 	/**
@@ -260,9 +271,9 @@ public final class Ezvcard {
 	 * Note that use of this method is discouraged. It ignores the character
 	 * encoding that is defined within the XML document itself, and should only
 	 * be used if the encoding is undefined or if the encoding needs to be
-	 * ignored for some other reason. The {@link #parseXml(InputStream)} method
-	 * should be used instead, since it takes the XML document's character
-	 * encoding into account when parsing.
+	 * ignored for some reason. The {@link #parseXml(InputStream)} method should
+	 * be used instead, since it takes the XML document's character encoding
+	 * into account when parsing.
 	 * </p>
 	 * <p>
 	 * Use {@link XCardDocument} or {@link XCardReader} for more control over
@@ -445,7 +456,6 @@ public final class Ezvcard {
 	 * Marshals one or more vCards to their traditional, plain-text
 	 * representation.
 	 * </p>
-	 * 
 	 * <p>
 	 * Use {@link VCardWriter} for more control over how the vCards are written.
 	 * </p>
@@ -465,7 +475,6 @@ public final class Ezvcard {
 	 * Marshals one or more vCards to their traditional, plain-text
 	 * representation.
 	 * </p>
-	 * 
 	 * <p>
 	 * Use {@link VCardWriter} for more control over how the vCards are written.
 	 * </p>
@@ -484,7 +493,6 @@ public final class Ezvcard {
 	 * <p>
 	 * Marshals one or more vCards to their XML representation (xCard).
 	 * </p>
-	 * 
 	 * <p>
 	 * Use {@link XCardDocument} or {@link XCardWriter} for more control over
 	 * how the vCards are written.
@@ -503,7 +511,6 @@ public final class Ezvcard {
 	 * <p>
 	 * Marshals one or more vCards to their XML representation (xCard).
 	 * </p>
-	 * 
 	 * <p>
 	 * Use {@link XCardDocument} or {@link XCardWriter} for more control over
 	 * how the vCards are written.
@@ -522,7 +529,6 @@ public final class Ezvcard {
 	 * <p>
 	 * Marshals one or more vCards their HTML representation (hCard).
 	 * </p>
-	 * 
 	 * <p>
 	 * Use {@link HCardPage} for more control over how the vCards are written.
 	 * </p>
@@ -539,7 +545,6 @@ public final class Ezvcard {
 	 * <p>
 	 * Marshals one or more vCards their HTML representation (hCard).
 	 * </p>
-	 * 
 	 * <p>
 	 * Use {@link HCardPage} for more control over how the vCards are written.
 	 * </p>
@@ -556,7 +561,6 @@ public final class Ezvcard {
 	 * <p>
 	 * Marshals one or more vCards to their JSON representation (jCard).
 	 * </p>
-	 * 
 	 * <p>
 	 * Use {@link JCardWriter} for more control over how the vCards are written.
 	 * </p>
@@ -573,7 +577,6 @@ public final class Ezvcard {
 	 * <p>
 	 * Marshals one or more vCards to their JSON representation (jCard).
 	 * </p>
-	 * 
 	 * <p>
 	 * Use {@link JCardWriter} for more control over how the vCards are written.
 	 * </p>

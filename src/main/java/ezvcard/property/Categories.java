@@ -1,24 +1,25 @@
 package ezvcard.property;
 
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
+import ezvcard.SupportedVersions;
 import ezvcard.VCardVersion;
+import ezvcard.parameter.Pid;
+
 import lombok.*;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -32,7 +33,7 @@ import lombok.*;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -40,21 +41,21 @@ import lombok.*;
  * <p>
  * Defines a list of keywords that can be used to describe the person.
  * </p>
- * 
+ *
  * <p>
  * <b>Code sample</b>
  * </p>
- * 
+ *
  * <pre class="brush:java">
  * VCard vcard = new VCard();
- * 
+ *
  * Categories categories = new Categories();
- * categories.addValue(&quot;Developer&quot;);
- * categories.addValue(&quot;Java coder&quot;);
- * categories.addValue(&quot;Ladies' man&quot;);
+ * categories.getValues().add(&quot;Developer&quot;);
+ * categories.getValues().add(&quot;Java coder&quot;);
+ * categories.getValues().add(&quot;Ladies' man&quot;);
  * vcard.setCategories(categories);
  * </pre>
- * 
+ *
  * <p>
  * <b>Property name:</b> {@code CATEGORIES}
  * </p>
@@ -62,23 +63,28 @@ import lombok.*;
  * <b>Supported versions:</b> {@code 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-43">RFC 6350 p.43</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-20">RFC 2426 p.20</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
+@SupportedVersions({ VCardVersion.V3_0, VCardVersion.V4_0 })
 public class Categories extends TextListProperty implements HasAltId {
+	public Categories() {
+		//empty
+	}
+
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Categories(Categories original) {
+		super(original);
+	}
+
 	@Override
-	public List<Integer[]> getPids() {
+	public List<Pid> getPids() {
 		return super.getPids();
-	}
-
-	@Override
-	public void addPid(int localId, int clientPidMapRef) {
-		super.addPid(localId, clientPidMapRef);
-	}
-
-	@Override
-	public void removePids() {
-		super.removePids();
 	}
 
 	@Override
@@ -126,7 +132,7 @@ public class Categories extends TextListProperty implements HasAltId {
 	}
 
 	@Override
-	public Set<VCardVersion> _supportedVersions() {
-		return EnumSet.of(VCardVersion.V3_0, VCardVersion.V4_0);
+	public Categories copy() {
+		return new Categories(this);
 	}
 }

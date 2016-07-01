@@ -5,21 +5,22 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 
+import ezvcard.Messages;
 import ezvcard.util.org.apache.commons.codec.EncoderException;
 import ezvcard.util.org.apache.commons.codec.net.QuotedPrintableCodec;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -33,7 +34,7 @@ import ezvcard.util.org.apache.commons.codec.net.QuotedPrintableCodec;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -232,12 +233,17 @@ public class FoldedLineWriter extends Writer {
 					}
 				}
 
-				// if last char is the low (second) char in a surrogate pair,
-				// don't split the pair across two lines.
+				/*
+				 * If the last char is the low (second) char in a surrogate
+				 * pair, don't split the pair across two lines.
+				 */
 				if (Character.isLowSurrogate(c)) {
 					i++;
 					if (i >= end - 1) {
-						// surrogate pair finishes the array, leave
+						/*
+						 * Surrogate pair finishes the char array, so leave the
+						 * loop.
+						 */
 						break;
 					}
 				}
@@ -294,7 +300,7 @@ public class FoldedLineWriter extends Writer {
 	 */
 	public void setLineLength(Integer lineLength) {
 		if (lineLength != null && lineLength <= 0) {
-			throw new IllegalArgumentException("Line length must be greater than 0.");
+			throw Messages.INSTANCE.getIllegalArgumentException(2);
 		}
 		this.lineLength = lineLength;
 	}
@@ -317,7 +323,7 @@ public class FoldedLineWriter extends Writer {
 	 */
 	public void setIndent(String indent) {
 		if (lineLength != null && indent.length() >= lineLength) {
-			throw new IllegalArgumentException("The length of the indent string must be less than the max line length.");
+			throw Messages.INSTANCE.getIllegalArgumentException(3);
 		}
 		this.indent = indent;
 	}

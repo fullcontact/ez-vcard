@@ -1,25 +1,24 @@
 package ezvcard.property;
 
 import java.util.Date;
-import java.util.EnumSet;
-import java.util.Set;
 
+import ezvcard.SupportedVersions;
 import ezvcard.VCardVersion;
 import ezvcard.util.PartialDate;
 import lombok.*;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -33,7 +32,7 @@ import lombok.*;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -41,14 +40,14 @@ import lombok.*;
  * <p>
  * Defines the person's anniversary (marital or work-related).
  * </p>
- * 
+ *
  * <p>
  * <b>Code sample (creating)</b>
  * </p>
- * 
+ *
  * <pre class="brush:java">
  * VCard vcard = new VCard();
- * 
+ *
  * //date
  * Calendar c = Calendar.getInstance();
  * c.clear();
@@ -57,43 +56,43 @@ import lombok.*;
  * c.set(Calendar.DAY_OF_MONTH, 21);
  * Anniversary anniversary = new Anniversary(c.getTime());
  * vcard.setAnniversary(anniversary);
- * 
+ *
  * //partial date (e.g. just the month and date)
  * PartialDate date = PartialDate.date(null, 3, 21);
  * anniversary = new Anniversary(date); //March 21
  * vcard.setAnniversary(anniversary);
- * 
+ *
  * //plain text value
  * anniversary = new Anniversary(&quot;Over 20 years ago!&quot;);
  * vcard.setAnniversary(anniversary);
  * </pre>
- * 
+ *
  * <p>
  * <b>Code sample (retrieving)</b>
  * </p>
- * 
+ *
  * <pre class="brush:java">
  * VCard vcard = ...
  * Anniversary anniversary = vcard.getAnniversary();
- * 
+ *
  * Date date = anniversary.getDate();
  * if (date != null){
  *   //property value is a date
  * }
- * 
+ *
  * PartialDate partialDate = anniversary.getPartialDate();
  * if (partialDate != null){
  *   //property value is a partial date
  *   int year = partialDate.getYear();
  *   int month = partialDate.getMonth();
  * }
- * 
+ *
  * String text = anniversary.getText();
  * if (text != null){
  *   //property value is plain text
  * }
  * </pre>
- * 
+ *
  * <p>
  * <b>Property name:</b> {@code ANNIVERSARY}
  * </p>
@@ -101,9 +100,11 @@ import lombok.*;
  * <b>Supported versions:</b> {@code 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-31">RFC 6350 p.31</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
+@SupportedVersions(VCardVersion.V4_0)
 public class Anniversary extends DateOrTimeProperty {
 	/**
 	 * Creates an anniversary property.
@@ -139,8 +140,16 @@ public class Anniversary extends DateOrTimeProperty {
 		super(text);
 	}
 
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Anniversary(Anniversary original) {
+		super(original);
+	}
+
 	@Override
-	public Set<VCardVersion> _supportedVersions() {
-		return EnumSet.of(VCardVersion.V4_0);
+	public Anniversary copy() {
+		return new Anniversary(this);
 	}
 }

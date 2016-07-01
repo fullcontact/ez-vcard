@@ -1,19 +1,20 @@
 package ezvcard.io.scribe;
 
+import static ezvcard.VCardVersion.V2_1;
+import static ezvcard.VCardVersion.V3_0;
+import static ezvcard.VCardVersion.V4_0;
 import static ezvcard.util.TestUtils.date;
-import static org.junit.Assert.assertEquals;
 
 import java.util.Date;
 
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import ezvcard.io.scribe.Sensei.Check;
 import ezvcard.property.Revision;
 import ezvcard.util.DefaultTimezoneRule;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -56,11 +57,12 @@ public class RevisionScribeTest {
 	private final String datetimeStrExt = "1980-06-05T12:10:20Z";
 
 	private final Revision withValue = new Revision(datetime);
-	private final Revision empty = new Revision(null);
+	private final Revision empty = new Revision((Date) null);
 
 	@Test
 	public void writeText() {
-		sensei.assertWriteText(withValue).run(datetimeStr);
+		sensei.assertWriteText(withValue).versions(V2_1, V4_0).run(datetimeStr);
+		sensei.assertWriteText(withValue).versions(V3_0).run(datetimeStrExt);
 		sensei.assertWriteText(empty).run("");
 	}
 
@@ -71,49 +73,41 @@ public class RevisionScribeTest {
 	}
 
 	@Test
-	public void marshalJson() {
+	public void writeJson() {
 		sensei.assertWriteJson(withValue).run(datetimeStrExt);
 		sensei.assertWriteJson(empty).run("");
 	}
 
 	@Test
 	public void parseText() {
-		sensei.assertParseText(datetimeStr).run(is(withValue));
+		sensei.assertParseText(datetimeStr).run(withValue);
 		sensei.assertParseText("invalid").cannotParse();
-		sensei.assertParseText("").run(is(empty));
+		sensei.assertParseText("").run(empty);
 	}
 
 	@Test
 	public void parseXml() {
-		sensei.assertParseXml("<timestamp>" + datetimeStr + "</timestamp>").run(is(withValue));
+		sensei.assertParseXml("<timestamp>" + datetimeStr + "</timestamp>").run(withValue);
 		sensei.assertParseXml("<timestamp>invalid</timestamp>").cannotParse();
 		sensei.assertParseXml("").cannotParse();
 	}
 
 	@Test
 	public void parseHtml() {
-		sensei.assertParseHtml("<time datetime=\"" + datetimeStrExt + "\">June 5, 1980</time>").run(is(withValue));
+		sensei.assertParseHtml("<time datetime=\"" + datetimeStrExt + "\">June 5, 1980</time>").run(withValue);
 		sensei.assertParseHtml("<time datetime=\"invalid\">June 5, 1980</time>").cannotParse();
 
-		sensei.assertParseHtml("<time>" + datetimeStrExt + "</time>").run(is(withValue));
+		sensei.assertParseHtml("<time>" + datetimeStrExt + "</time>").run(withValue);
 		sensei.assertParseHtml("<time>invalid</time>").cannotParse();
 
-		sensei.assertParseHtml("<div>" + datetimeStrExt + "</div>").run(is(withValue));
+		sensei.assertParseHtml("<div>" + datetimeStrExt + "</div>").run(withValue);
 		sensei.assertParseHtml("<div>invalid</div>").cannotParse();
 	}
 
 	@Test
 	public void parseJson() {
-		sensei.assertParseJson(datetimeStrExt).run(is(withValue));
+		sensei.assertParseJson(datetimeStrExt).run(withValue);
 		sensei.assertParseJson("invalid").cannotParse();
-		sensei.assertParseJson("").run(is(empty));
-	}
-
-	private Check<Revision> is(final Revision expected) {
-		return new Check<Revision>() {
-			public void check(Revision actual) {
-				assertEquals(expected.getValue(), actual.getValue());
-			}
-		};
+		sensei.assertParseJson("").run(empty);
 	}
 }

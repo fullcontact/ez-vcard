@@ -7,6 +7,7 @@ import static org.custommonkey.xmlunit.XMLAssert.assertXMLEqual;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -23,8 +24,9 @@ import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
-import ezvcard.io.LuckyNumType;
-import ezvcard.io.LuckyNumType.LuckyNumScribe;
+import ezvcard.io.LuckyNumProperty;
+import ezvcard.io.LuckyNumProperty.LuckyNumScribe;
+import ezvcard.io.text.TargetApplication;
 import ezvcard.io.xml.XCardNamespaceContext;
 import ezvcard.parameter.ImageType;
 import ezvcard.property.FormattedName;
@@ -33,7 +35,7 @@ import ezvcard.util.XCardBuilder;
 import ezvcard.util.XmlUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -130,7 +132,7 @@ public class EzvcardTest {
 
 		VCard vcard = Ezvcard.parse(str).register(new LuckyNumScribe()).first();
 		assertVersion(VCardVersion.V2_1, vcard);
-		List<LuckyNumType> ext = vcard.getProperties(LuckyNumType.class);
+		List<LuckyNumProperty> ext = vcard.getProperties(LuckyNumProperty.class);
 		assertEquals(1, ext.size());
 		assertEquals(22, ext.get(0).luckyNum);
 	}
@@ -199,7 +201,7 @@ public class EzvcardTest {
 
 		VCard vcard = Ezvcard.parseXml(xb.toString()).register(new LuckyNumScribe()).first();
 		assertVersion(VCardVersion.V4_0, vcard);
-		List<LuckyNumType> ext = vcard.getProperties(LuckyNumType.class);
+		List<LuckyNumProperty> ext = vcard.getProperties(LuckyNumProperty.class);
 		assertEquals(1, ext.size());
 		assertEquals(22, ext.get(0).luckyNum);
 	}
@@ -263,7 +265,7 @@ public class EzvcardTest {
 
 		VCard vcard = Ezvcard.parseHtml(html).register(new LuckyNumScribe()).first();
 		assertVersion(VCardVersion.V3_0, vcard);
-		List<LuckyNumType> ext = vcard.getProperties(LuckyNumType.class);
+		List<LuckyNumProperty> ext = vcard.getProperties(LuckyNumProperty.class);
 		assertEquals(1, ext.size());
 		assertEquals(22, ext.get(0).luckyNum);
 	}
@@ -364,7 +366,7 @@ public class EzvcardTest {
 
 		VCard vcard = Ezvcard.parseJson(json).register(new LuckyNumScribe()).first();
 		assertVersion(VCardVersion.V4_0, vcard);
-		List<LuckyNumType> ext = vcard.getProperties(LuckyNumType.class);
+		List<LuckyNumProperty> ext = vcard.getProperties(LuckyNumProperty.class);
 		assertEquals(1, ext.size());
 		assertEquals(22, ext.get(0).luckyNum);
 	}
@@ -432,14 +434,22 @@ public class EzvcardTest {
 		fn.getParameters().put("X-TEST", "George Herman \"Babe\" Ruth");
 
 		//default should be "false"
-		String actual = Ezvcard.write(vcard).go();
-		assertTrue(actual.contains("\r\nFN;X-TEST=George Herman 'Babe' Ruth:"));
+		try {
+			Ezvcard.write(vcard).go();
+			fail("IllegalArgumentException expected.");
+		} catch (IllegalArgumentException e) {
+			//expected
+		}
 
-		actual = Ezvcard.write(vcard).caretEncoding(true).go();
+		String actual = Ezvcard.write(vcard).caretEncoding(true).go();
 		assertTrue(actual.contains("\r\nFN;X-TEST=George Herman ^'Babe^' Ruth:"));
 
-		actual = Ezvcard.write(vcard).caretEncoding(false).go();
-		assertTrue(actual.contains("\r\nFN;X-TEST=George Herman 'Babe' Ruth:"));
+		try {
+			Ezvcard.write(vcard).caretEncoding(false).go();
+			fail("IllegalArgumentException expected.");
+		} catch (IllegalArgumentException e) {
+			//expected
+		}
 	}
 
 	@Test
@@ -459,12 +469,12 @@ public class EzvcardTest {
 	}
 
 	@Test
-	public void write_outlook() throws Exception {
+	public void write_targetApplication() throws Exception {
 		byte data[] = "data".getBytes();
 		VCard vcard = new VCard();
 		vcard.addPhoto(new Photo(data, ImageType.JPEG));
 
-		//default
+		//default value (null)
 		{
 			String actual = Ezvcard.write(vcard).prodId(false).version(VCardVersion.V2_1).go();
 
@@ -472,38 +482,23 @@ public class EzvcardTest {
 			String expected =
 			"BEGIN:VCARD\r\n" +
 				"VERSION:2.1\r\n" +
-				"PHOTO;ENCODING=base64;JPEG:ZGF0YQ==\r\n" +
+				"PHOTO;ENCODING=BASE64;JPEG:ZGF0YQ==\r\n" +
 			"END:VCARD\r\n";
 			//@formatter:on
 
 			assertEquals(expected, actual);
 		}
 
-		//true
+		//with value
 		{
-			String actual = Ezvcard.write(vcard).prodId(false).version(VCardVersion.V2_1).outlook(true).go();
+			String actual = Ezvcard.write(vcard).prodId(false).version(VCardVersion.V2_1).targetApplication(TargetApplication.OUTLOOK).go();
 
 			//@formatter:off
 			String expected =
 			"BEGIN:VCARD\r\n" +
 				"VERSION:2.1\r\n" +
-				"PHOTO;ENCODING=base64;JPEG:ZGF0YQ==\r\n" +
+				"PHOTO;ENCODING=BASE64;JPEG:ZGF0YQ==\r\n" +
 				"\r\n" +
-			"END:VCARD\r\n";
-			//@formatter:on
-
-			assertEquals(expected, actual);
-		}
-
-		//false
-		{
-			String actual = Ezvcard.write(vcard).prodId(false).version(VCardVersion.V2_1).outlook(false).go();
-
-			//@formatter:off
-			String expected =
-			"BEGIN:VCARD\r\n" +
-				"VERSION:2.1\r\n" +
-				"PHOTO;ENCODING=base64;JPEG:ZGF0YQ==\r\n" +
 			"END:VCARD\r\n";
 			//@formatter:on
 
@@ -728,10 +723,10 @@ public class EzvcardTest {
 		String actual = Ezvcard.writeJson(vcard).go();
 		assertTrue(actual.startsWith("[\"vcard\",[[\""));
 
-		actual = Ezvcard.writeJson(vcard).indent(true).go();
-		assertTrue(actual.startsWith("[" + NEWLINE + "\"vcard\",[[" + NEWLINE));
+		actual = Ezvcard.writeJson(vcard).prettyPrint(true).go();
+		assertTrue(actual.startsWith("[" + NEWLINE + "  \"vcard\"," + NEWLINE + "  [" + NEWLINE + "    ["));
 
-		actual = Ezvcard.writeJson(vcard).indent(false).go();
+		actual = Ezvcard.writeJson(vcard).prettyPrint(false).go();
 		assertTrue(actual.startsWith("[\"vcard\",[[\""));
 	}
 

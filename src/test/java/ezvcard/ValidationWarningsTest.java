@@ -1,6 +1,6 @@
 package ezvcard;
 
-import static ezvcard.util.StringUtils.NEWLINE;
+import static ezvcard.util.TestUtils.assertSetEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -11,19 +11,20 @@ import java.util.regex.Pattern;
 import org.junit.Test;
 
 import ezvcard.property.VCardProperty;
+import ezvcard.util.StringUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -64,10 +65,7 @@ public class ValidationWarningsTest {
 		warnings.add(new TestProperty2(), v2);
 		warnings.add(null, v3);
 
-		Set<Warning> v0Warnings = new HashSet<Warning>(
-			warnings.getByProperty(TestProperty1.class));
-		assertEquals(new HashSet<Warning>(Arrays.asList(v0, v1)), v0Warnings);
-
+		assertSetEquals(new HashSet<Warning>(warnings.getByProperty(TestProperty1.class)), v0, v1);
 		assertEquals(Arrays.asList(v2), warnings.getByProperty(TestProperty2.class));
 		assertEquals(Arrays.asList(v3), warnings.getByProperty(null));
 		assertEquals(Arrays.asList(), warnings.getByProperty(TestProperty3.class));
@@ -83,18 +81,20 @@ public class ValidationWarningsTest {
 		warnings.add(new TestProperty1(), new Warning("four", 4));
 
 		//@formatter:off
-		List<String> expected = Arrays.asList(
+		List<String> expectedLines = Arrays.asList(
 			"one",
 			"W02: two",
 			"[TestProperty1] | three",
-			"[TestProperty1] | W04: four");
+			"[TestProperty1] | W04: four"
+		);
 		//@formatter:on
-		// XXX warning ordering is dependent on IdentityHashMap ordering, so sort lines.
-		Collections.sort(expected);
+		Collections.sort(expectedLines);
+
 		String actual = warnings.toString();
-		List<String> actualSplit = Arrays.asList(Pattern.compile(NEWLINE).split(actual));
-		Collections.sort(actualSplit);
-		assertEquals(expected, actualSplit);
+		List<String> actualLines = Arrays.asList(actual.split(StringUtils.NEWLINE));
+		Collections.sort(actualLines);
+
+		assertEquals(expectedLines, actualLines);
 	}
 
 	private class TestProperty1 extends VCardProperty {

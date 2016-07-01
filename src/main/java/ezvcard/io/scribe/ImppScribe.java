@@ -14,12 +14,13 @@ import ezvcard.VCardVersion;
 import ezvcard.io.CannotParseException;
 import ezvcard.io.html.HCardElement;
 import ezvcard.io.json.JCardValue;
+import ezvcard.io.text.WriteContext;
 import ezvcard.io.xml.XCardElement;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.Impp;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -72,7 +73,7 @@ public class ImppScribe extends VCardPropertyScribe<Impp> {
 	}
 
 	@Override
-	protected String _writeText(Impp property, VCardVersion version) {
+	protected String _writeText(Impp property, WriteContext context) {
 		return write(property);
 	}
 
@@ -127,7 +128,7 @@ public class ImppScribe extends VCardPropertyScribe<Impp> {
 
 	private String write(Impp property) {
 		URI uri = property.getUri();
-		return (uri == null) ? "" : uri.toString();
+		return (uri == null) ? "" : uri.toASCIIString();
 	}
 
 	private Impp parse(String value) {
@@ -220,7 +221,7 @@ public class ImppScribe extends VCardPropertyScribe<Impp> {
 				return format.buildLink(handle);
 			}
 		}
-		return uri.toString();
+		return uri.toASCIIString();
 	}
 
 	private static class HtmlLinkFormat {

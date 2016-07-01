@@ -6,8 +6,10 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import ezvcard.Messages;
+
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -41,24 +43,23 @@ import java.util.regex.Pattern;
  * to represent reduced accuracy and truncated dates, as defined in ISO8601.
  * </p>
  * <p>
- * A <b>truncated date</b> is a date where the "lesser" components are missing.
- * For example, "12:30" is truncated because the "seconds" component is missing.
+ * A <b>reduced accuracy date</b> is a date where the "lesser" components are
+ * missing. For example, "12:30" is reduced accuracy because the "seconds"
+ * component is missing.
+ * </p>
  * 
  * <pre class="brush:java">
  * PartialDate date = PartialDate.builder().hour(12).minute(30).build();
  * </pre>
  * 
- * </p>
  * <p>
- * A <b>reduced accuracy date</b> is a date where the "greater" components are
- * missing. For example, "April 20" is reduced accuracy because the "year"
- * component is missing.
+ * A <b>truncated date</b> is a date where the "greater" components are missing.
+ * For example, "April 20" is truncated because the "year" component is missing.
+ * </p>
  * 
  * <pre class="brush:java">
  * PartialDate date = PartialDate.builder().month(4).date(20).build();
  * </pre>
- * 
- * </p>
  * @author Michael Angstadt
  */
 public final class PartialDate {
@@ -127,24 +128,36 @@ public final class PartialDate {
 	/**
 	 * Parses a partial date from a string.
 	 * @param string the string (e.g. "--0420T15")
+	 * @return the parsed date
+	 * @throws IllegalArgumentException if there's a problem parsing the date
+	 * string
 	 */
 	public static PartialDate parse(String string) {
+		int t = string.indexOf('T');
+		String beforeT, afterT;
+		if (t < 0) {
+			beforeT = string;
+			afterT = null;
+		} else {
+			beforeT = string.substring(0, t);
+			afterT = (t < string.length() - 1) ? string.substring(t + 1) : null;
+		}
+
 		Builder builder = new Builder();
-		String split[] = string.split("T");
 		boolean success;
-		if (split.length == 1) {
+		if (afterT == null) {
 			//date or time
-			success = parseDate(string, builder) || parseTime(string, builder);
-		} else if (split[0].length() == 0) {
+			success = parseDate(beforeT, builder) || parseTime(beforeT, builder);
+		} else if (beforeT.length() == 0) {
 			//time
-			success = parseTime(split[1], builder);
+			success = parseTime(afterT, builder);
 		} else {
 			//date and time
-			success = parseDate(split[0], builder) && parseTime(split[1], builder);
+			success = parseDate(beforeT, builder) && parseTime(afterT, builder);
 		}
 
 		if (!success) {
-			throw new IllegalArgumentException("Could not parse date: " + string);
+			throw Messages.INSTANCE.getIllegalArgumentException(36, string);
 		}
 		return builder.build();
 	}
@@ -323,7 +336,7 @@ public final class PartialDate {
 		} else if (!hasYear() && hasMonth() && hasDate()) {
 			sb.append("--").append(monthStr).append(dash).append(dateStr);
 		} else if (hasYear() && !hasMonth() && hasDate()) {
-			throw new IllegalStateException("Invalid date component combination: year, date");
+			throw new IllegalStateException(Messages.INSTANCE.getExceptionMessage(38));
 		} else if (hasYear() && hasMonth() && hasDate()) {
 			sb.append(yearStr).append(dash).append(monthStr).append(dash).append(dateStr);
 		}
@@ -347,7 +360,7 @@ public final class PartialDate {
 			} else if (!hasHour() && hasMinute() && hasSecond()) {
 				sb.append("-").append(minuteStr).append(dash).append(secondStr);
 			} else if (hasHour() && !hasMinute() && hasSecond()) {
-				throw new IllegalStateException("Invalid time component combination: hour, second");
+				throw new IllegalStateException(Messages.INSTANCE.getExceptionMessage(39));
 			} else if (hasHour() && hasMinute() && hasSecond()) {
 				sb.append(hourStr).append(dash).append(minuteStr).append(dash).append(secondStr);
 			}
@@ -433,7 +446,7 @@ public final class PartialDate {
 						groupStr = groupStr.substring(1);
 					}
 
-					int component = Integer.valueOf(groupStr);
+					int component = Integer.parseInt(groupStr);
 					if (index == TIMEZONE_HOUR) {
 						offsetHour = component;
 						offsetPositive = startsWithPlus;
@@ -477,18 +490,26 @@ public final class PartialDate {
 			offset = original.offset;
 		}
 
+		/**
+		 * Sets the year component.
+		 * @param year the year
+		 * @return this
+		 */
 		public Builder year(Integer year) {
 			components[YEAR] = year;
 			return this;
 		}
 
 		/**
+		 * Sets the month component.
+		 * @param month the month (1-12)
+		 * @return this
 		 * @throws IllegalArgumentException if the month is not between 1 and 12
 		 * inclusive
 		 */
 		public Builder month(Integer month) {
 			if (month != null && (month < 1 || month > 12)) {
-				throw new IllegalArgumentException("Month must be between 1 and 12 inclusive.");
+				throw Messages.INSTANCE.getIllegalArgumentException(37, "Month", 1, 12);
 			}
 
 			components[MONTH] = month;
@@ -496,12 +517,15 @@ public final class PartialDate {
 		}
 
 		/**
+		 * Sets the date component.
+		 * @param date the date
+		 * @return this
 		 * @throws IllegalArgumentException if the date is not between 1 and 31
 		 * inclusive
 		 */
 		public Builder date(Integer date) {
 			if (date != null && (date < 1 || date > 31)) {
-				throw new IllegalArgumentException("Date must be between 1 and 31 inclusive.");
+				throw Messages.INSTANCE.getIllegalArgumentException(37, "Date", 1, 31);
 			}
 
 			components[DATE] = date;
@@ -509,12 +533,15 @@ public final class PartialDate {
 		}
 
 		/**
-		 * @throws IllegalArgumentException if the hour is not between 1 and 23
+		 * Sets the hour component.
+		 * @param hour the hour
+		 * @return this
+		 * @throws IllegalArgumentException if the hour is not between 0 and 23
 		 * inclusive
 		 */
 		public Builder hour(Integer hour) {
 			if (hour != null && (hour < 0 || hour > 23)) {
-				throw new IllegalArgumentException("Hour must be between 0 and 23 inclusive.");
+				throw Messages.INSTANCE.getIllegalArgumentException(37, "Hour", 0, 23);
 			}
 
 			components[HOUR] = hour;
@@ -522,12 +549,15 @@ public final class PartialDate {
 		}
 
 		/**
+		 * Sets the minute component.
+		 * @param minute the minute
+		 * @return this
 		 * @throws IllegalArgumentException if the minute is not between 0 and
 		 * 59 inclusive
 		 */
 		public Builder minute(Integer minute) {
 			if (minute != null && (minute < 0 || minute > 59)) {
-				throw new IllegalArgumentException("Minute must be between 0 and 59 inclusive.");
+				throw Messages.INSTANCE.getIllegalArgumentException(37, "Minute", 0, 59);
 			}
 
 			components[MINUTE] = minute;
@@ -535,29 +565,44 @@ public final class PartialDate {
 		}
 
 		/**
+		 * Sets the second component.
+		 * @param second the second
+		 * @return this
 		 * @throws IllegalArgumentException if the second is not between 0 and
 		 * 59 inclusive
 		 */
 		public Builder second(Integer second) {
 			if (second != null && (second < 0 || second > 59)) {
-				throw new IllegalArgumentException("Second must be between 0 and 59 inclusive.");
+				throw Messages.INSTANCE.getIllegalArgumentException(37, "Second", 0, 59);
 			}
 
 			components[SECOND] = second;
 			return this;
 		}
 
+		/**
+		 * Sets the timezone offset.
+		 * @param offset the timezone offset
+		 * @return this
+		 */
 		public Builder offset(UtcOffset offset) {
 			this.offset = offset;
 			return this;
 		}
 
+		/**
+		 * Builds the {@link PartialDate} object.
+		 * @return the {@link PartialDate} object
+		 * @throws IllegalArgumentException if the year and date are defined,
+		 * but the month is not, or if the hour and second are defined, but the
+		 * minute is not
+		 */
 		public PartialDate build() {
 			if (components[YEAR] != null && components[MONTH] == null && components[DATE] != null) {
-				throw new IllegalArgumentException("Invalid date component combination: year, date");
+				throw Messages.INSTANCE.getIllegalArgumentException(38);
 			}
 			if (components[HOUR] != null && components[MINUTE] == null && components[SECOND] != null) {
-				throw new IllegalArgumentException("Invalid time component combination: hour, second");
+				throw Messages.INSTANCE.getIllegalArgumentException(39);
 			}
 
 			return new PartialDate(components, offset);

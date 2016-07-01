@@ -9,7 +9,7 @@ import ezvcard.property.ImageProperty;
 import ezvcard.util.DataUri;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -71,7 +71,7 @@ public abstract class ImagePropertyScribe<T extends ImageProperty> extends Binar
 		}
 
 		try {
-			DataUri uri = new DataUri(src);
+			DataUri uri = DataUri.parse(src);
 			ImageType mediaType = _mediaTypeFromMediaTypeParameter(uri.getContentType());
 			return _newInstance(uri.getData(), mediaType);
 		} catch (IllegalArgumentException e) {

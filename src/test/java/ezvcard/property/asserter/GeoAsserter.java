@@ -1,13 +1,11 @@
 package ezvcard.property.asserter;
 
-import static org.junit.Assert.assertEquals;
-
 import java.util.List;
 
 import ezvcard.property.Geo;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -38,31 +36,23 @@ import ezvcard.property.Geo;
 /**
  * @author Michael Angstadt
  */
-public class GeoAsserter extends PropertyAsserter<GeoAsserter, Geo> {
-	private Double latitude, longitude;
-
-	public GeoAsserter(List<Geo> properties) {
-		super(properties);
+public class GeoAsserter extends PropertyImplAsserter<GeoAsserter, Geo> {
+	public GeoAsserter(List<Geo> properties, VCardAsserter asserter) {
+		super(properties, asserter);
 	}
 
 	public GeoAsserter latitude(Double latitude) {
-		this.latitude = latitude;
+		expected.setLatitude(latitude);
 		return this_;
 	}
 
 	public GeoAsserter longitude(Double longitude) {
-		this.longitude = longitude;
+		expected.setLongitude(longitude);
 		return this_;
 	}
 
 	@Override
-	protected void _run(Geo property) {
-		assertEquals(latitude, property.getLatitude());
-		assertEquals(longitude, property.getLongitude());
-	}
-
-	@Override
-	protected void _reset() {
-		latitude = longitude = null;
+	protected Geo _newInstance() {
+		return new Geo(null, null);
 	}
 }

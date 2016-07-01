@@ -1,14 +1,16 @@
 package ezvcard.property;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.Warning;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -39,33 +41,30 @@ import ezvcard.Warning;
 /**
  * Represents a property whose value is a list of textual values.
  * @author Michael Angstadt
- * @param <T> the type of values sorted in the list
+ * @param <T> the type of values stored in the list
  */
 public class ListProperty<T> extends VCardProperty {
-	protected List<T> values = new ArrayList<T>();
+	protected final List<T> values;
+
+	public ListProperty() {
+		values = new ArrayList<T>();
+	}
 
 	/**
-	 * Gest the list of values.
-	 * @return the list of values
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public ListProperty(ListProperty<T> original) {
+		super(original);
+		values = new ArrayList<T>(original.values);
+	}
+
+	/**
+	 * Gets the list that stores this property's values.
+	 * @return the list of values (this list is mutable)
 	 */
 	public List<T> getValues() {
 		return values;
-	}
-
-	/**
-	 * Adds a value to the list.
-	 * @param value the value to add
-	 */
-	public void addValue(T value) {
-		values.add(value);
-	}
-
-	/**
-	 * Removes a value from the list.
-	 * @param value the value to remove
-	 */
-	public void removeValue(T value) {
-		values.remove(value);
 	}
 
 	@Override
@@ -73,5 +72,29 @@ public class ListProperty<T> extends VCardProperty {
 		if (values.isEmpty()) {
 			warnings.add(new Warning(8));
 		}
+	}
+
+	@Override
+	protected Map<String, Object> toStringValues() {
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put("values", this.values);
+		return values;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + values.hashCode();
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!super.equals(obj)) return false;
+		ListProperty<?> other = (ListProperty<?>) obj;
+		if (!values.equals(other.values)) return false;
+		return true;
 	}
 }

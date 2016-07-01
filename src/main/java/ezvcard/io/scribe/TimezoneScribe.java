@@ -9,13 +9,14 @@ import ezvcard.VCardVersion;
 import ezvcard.io.CannotParseException;
 import ezvcard.io.html.HCardElement;
 import ezvcard.io.json.JCardValue;
+import ezvcard.io.text.WriteContext;
 import ezvcard.io.xml.XCardElement;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.Timezone;
 import ezvcard.util.UtcOffset;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -140,11 +141,11 @@ public class TimezoneScribe extends VCardPropertyScribe<Timezone> {
 	}
 
 	@Override
-	protected String _writeText(Timezone property, VCardVersion version) {
+	protected String _writeText(Timezone property, WriteContext context) {
 		String text = property.getText();
 		UtcOffset offset = property.getOffset();
 
-		switch (version) {
+		switch (context.getVersion()) {
 		case V2_1:
 			if (offset != null) {
 				return offset.toString(false); //2.1 allows either basic or extended

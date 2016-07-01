@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
@@ -13,7 +14,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -104,6 +105,9 @@ import lombok.ToString;
  * <b>Supported versions:</b> {@code 2.1, 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-48">RFC 6350 p.48</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-26">RFC 2426 p.26</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.22</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -156,6 +160,15 @@ public class Key extends BinaryProperty<KeyType> {
 	}
 
 	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Key(Key original) {
+		super(original);
+		text = original.text;
+	}
+
+	/**
 	 * Sets a plain text representation of the key.
 	 * @param text the key in plain text
 	 * @param type the key type
@@ -176,6 +189,18 @@ public class Key extends BinaryProperty<KeyType> {
 	}
 
 	@Override
+	public void setUrl(String url, KeyType type) {
+		super.setUrl(url, type);
+		text = null;
+	}
+
+	@Override
+	public void setData(byte[] data, KeyType type) {
+		super.setData(data, type);
+		text = null;
+	}
+
+	@Override
 	protected void _validate(List<Warning> warnings, VCardVersion version, VCard vcard) {
 		if (url == null && data == null && text == null) {
 			warnings.add(new Warning(8));
@@ -184,5 +209,36 @@ public class Key extends BinaryProperty<KeyType> {
 		if (url != null && (version == VCardVersion.V2_1 || version == VCardVersion.V3_0)) {
 			warnings.add(new Warning(15));
 		}
+	}
+
+	@Override
+	protected Map<String, Object> toStringValues() {
+		Map<String, Object> values = super.toStringValues();
+		values.put("text", text);
+		return values;
+	}
+
+	@Override
+	public Key copy() {
+		return new Key(this);
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((text == null) ? 0 : text.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!super.equals(obj)) return false;
+		Key other = (Key) obj;
+		if (text == null) {
+			if (other.text != null) return false;
+		} else if (!text.equals(other.text)) return false;
+		return true;
 	}
 }

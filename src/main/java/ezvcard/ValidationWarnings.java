@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ import java.util.Map.Entry;
  * </p>
  * <p>
  * <b>Examples:</b>
+ * </p>
  *
  * <pre class="brush:java">
  * //validate a vCard object according to the rules of a specific version
@@ -74,8 +75,8 @@ import java.util.Map.Entry;
  * //you can also get the warnings of specific property classes
  * List&lt;Warnings&gt; telWarnings = warnings.getByProperty(Telephone.class);
  * </pre>
- *
  * </p>
+ *
  * @author Michael Angstadt
  * @see VCard#validate
  */

@@ -7,8 +7,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import ezvcard.Messages;
+
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -47,17 +49,15 @@ import java.util.regex.Pattern;
  * This class is immutable. Use the {@link Builder} object to construct a new
  * instance, or the {@link #parse} method to parse a geo URI string.
  * </p>
- * 
  * <p>
  * <b>Examples:</b>
+ * </p>
  * 
  * <pre class="brush:java">
  * GeoUri uri = new GeoUri.Builder(40.714623, -74.006605).coordC(1.1).build();
  * GeoUri uri = GeoUri.parse(&quot;geo:40.714623,-74.006605,1.1&quot;);
  * GeoUri copy = new GeoUri.Builder(original).coordC(2.1).build();
  * </pre>
- * 
- * </p>
  * @author Michael Angstadt
  * @see <a href="http://tools.ietf.org/html/rfc5870">RFC 5870</a>
  */
@@ -71,19 +71,21 @@ public final class GeoUri {
 	 * The characters which are allowed to exist un-encoded inside of a
 	 * parameter value.
 	 */
-	private static final boolean validParamValueChars[] = new boolean[128];
+	private static final boolean validParameterValueCharacters[] = new boolean[128];
 	static {
 		for (int i = '0'; i <= '9'; i++) {
-			validParamValueChars[i] = true;
+			validParameterValueCharacters[i] = true;
 		}
 		for (int i = 'A'; i <= 'Z'; i++) {
-			validParamValueChars[i] = true;
+			validParameterValueCharacters[i] = true;
 		}
 		for (int i = 'a'; i <= 'z'; i++) {
-			validParamValueChars[i] = true;
+			validParameterValueCharacters[i] = true;
 		}
-		for (char c : "!$&'()*+-.:[]_~".toCharArray()) {
-			validParamValueChars[c] = true;
+		String s = "!$&'()*+-.:[]_~";
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			validParameterValueCharacters[c] = true;
 		}
 	}
 
@@ -91,16 +93,6 @@ public final class GeoUri {
 	 * Finds hex values in a parameter value.
 	 */
 	private static final Pattern hexPattern = Pattern.compile("(?i)%([0-9a-f]{2})");
-
-	/**
-	 * Validates parameter names.
-	 */
-	private static final Pattern labelTextPattern = Pattern.compile("(?i)^[-a-z0-9]+$");
-
-	/**
-	 * Parses geo URIs.
-	 */
-	private static final Pattern uriPattern = Pattern.compile("(?i)^geo:(-?\\d+(\\.\\d+)?),(-?\\d+(\\.\\d+)?)(,(-?\\d+(\\.\\d+)?))?(;(.*))?$");
 
 	private static final String PARAM_CRS = "crs";
 	private static final String PARAM_UNCERTAINTY = "u";
@@ -113,8 +105,8 @@ public final class GeoUri {
 	private final Map<String, String> parameters;
 
 	private GeoUri(Builder builder) {
-		this.coordA = builder.coordA;
-		this.coordB = builder.coordB;
+		this.coordA = (builder.coordA == null) ? Double.valueOf(0.0) : builder.coordA;
+		this.coordB = (builder.coordB == null) ? Double.valueOf(0.0) : builder.coordB;
 		this.coordC = builder.coordC;
 		this.crs = builder.crs;
 		this.uncertainty = builder.uncertainty;
@@ -128,46 +120,122 @@ public final class GeoUri {
 	 * @throws IllegalArgumentException if the string is not a valid geo URI
 	 */
 	public static GeoUri parse(String uri) {
-		Matcher m = uriPattern.matcher(uri);
-		if (!m.find()) {
-			throw new IllegalArgumentException("Invalid geo URI: " + uri);
+		//URI format: geo:LAT,LONG;prop1=value1;prop2=value2
+
+		String scheme = "geo:";
+		if (uri.length() < scheme.length() || !uri.substring(0, scheme.length()).equalsIgnoreCase(scheme)) {
+			//not a geo URI
+			throw Messages.INSTANCE.getIllegalArgumentException(18, scheme);
 		}
 
-		Builder builder = new Builder(Double.parseDouble(m.group(1)), Double.parseDouble(m.group(3)));
+		Builder builder = new Builder(null, null);
+		ClearableStringBuilder buffer = new ClearableStringBuilder();
+		String paramName = null;
+		boolean coordinatesDone = false;
+		for (int i = scheme.length(); i < uri.length(); i++) {
+			char c = uri.charAt(i);
 
-		String coordCStr = m.group(6);
-		if (coordCStr != null) {
-			builder.coordC = Double.valueOf(coordCStr);
-		}
+			if (c == ',' && !coordinatesDone) {
+				handleEndOfCoordinate(buffer, builder);
+				continue;
+			}
 
-		String paramsStr = m.group(9);
-		if (paramsStr != null) {
-			String paramsArray[] = paramsStr.split(";");
-
-			for (String param : paramsArray) {
-				String paramSplit[] = param.split("=", 2);
-				String paramName = paramSplit[0];
-				String paramValue = (paramSplit.length > 1) ? decodeParamValue(paramSplit[1]) : "";
-
-				if (PARAM_CRS.equalsIgnoreCase(paramName)) {
-					builder.crs = paramValue;
-					continue;
-				}
-
-				if (PARAM_UNCERTAINTY.equalsIgnoreCase(paramName)) {
-					try {
-						builder.uncertainty = Double.valueOf(paramValue);
-						continue;
-					} catch (NumberFormatException e) {
-						//if it can't be parsed, then treat it as an ordinary parameter
+			if (c == ';') {
+				if (coordinatesDone) {
+					handleEndOfParameter(buffer, paramName, builder);
+					paramName = null;
+				} else {
+					handleEndOfCoordinate(buffer, builder);
+					if (builder.coordB == null) {
+						throw Messages.INSTANCE.getIllegalArgumentException(21);
 					}
+					coordinatesDone = true;
 				}
+				continue;
+			}
 
-				builder.parameters.put(paramName, paramValue);
+			if (c == '=' && coordinatesDone && paramName == null) {
+				paramName = buffer.getAndClear();
+				continue;
+			}
+
+			buffer.append(c);
+		}
+
+		if (coordinatesDone) {
+			handleEndOfParameter(buffer, paramName, builder);
+		} else {
+			handleEndOfCoordinate(buffer, builder);
+			if (builder.coordB == null) {
+				throw Messages.INSTANCE.getIllegalArgumentException(21);
 			}
 		}
 
 		return builder.build();
+	}
+
+	private static void handleEndOfCoordinate(ClearableStringBuilder buffer, Builder builder) {
+		String s = buffer.getAndClear();
+
+		if (builder.coordA == null) {
+			try {
+				builder.coordA = Double.parseDouble(s);
+			} catch (NumberFormatException e) {
+				throw new IllegalArgumentException(Messages.INSTANCE.getExceptionMessage(22, "A"), e);
+			}
+			return;
+		}
+
+		if (builder.coordB == null) {
+			try {
+				builder.coordB = Double.parseDouble(s);
+			} catch (NumberFormatException e) {
+				throw new IllegalArgumentException(Messages.INSTANCE.getExceptionMessage(22, "B"), e);
+			}
+			return;
+		}
+
+		if (builder.coordC == null) {
+			try {
+				builder.coordC = Double.parseDouble(s);
+			} catch (NumberFormatException e) {
+				throw new IllegalArgumentException(Messages.INSTANCE.getExceptionMessage(22, "C"), e);
+			}
+			return;
+		}
+	}
+
+	private static void addParameter(String name, String value, Builder builder) {
+		value = decodeParameterValue(value);
+
+		if (PARAM_CRS.equalsIgnoreCase(name)) {
+			builder.crs = value;
+			return;
+		}
+
+		if (PARAM_UNCERTAINTY.equalsIgnoreCase(name)) {
+			try {
+				builder.uncertainty = Double.valueOf(value);
+				return;
+			} catch (NumberFormatException e) {
+				//if it can't be parsed, then treat it as an ordinary parameter
+			}
+		}
+
+		builder.parameters.put(name, value);
+	}
+
+	private static void handleEndOfParameter(ClearableStringBuilder buffer, String paramName, Builder builder) {
+		String s = buffer.getAndClear();
+
+		if (paramName == null) {
+			if (s.length() > 0) {
+				addParameter(s, "", builder);
+			}
+			return;
+		}
+
+		addParameter(paramName, s, builder);
 	}
 
 	/**
@@ -289,24 +357,26 @@ public final class GeoUri {
 	 * @param sb the string to write to
 	 */
 	private void writeParameter(String name, String value, StringBuilder sb) {
-		sb.append(';').append(name).append('=').append(encodeParamValue(value));
+		sb.append(';').append(name).append('=').append(encodeParameterValue(value));
 	}
 
-	private static boolean isLabelText(String text) {
-		return labelTextPattern.matcher(text).find();
-	}
-
-	private static String encodeParamValue(String value) {
+	/**
+	 * Encodes a string for safe inclusion in a parameter value.
+	 * @param value the string to encode
+	 * @return the encoded value
+	 */
+	private static String encodeParameterValue(String value) {
 		StringBuilder sb = null;
 		for (int i = 0; i < value.length(); i++) {
 			char c = value.charAt(i);
-			if (c < validParamValueChars.length && validParamValueChars[c]) {
+			if (c < validParameterValueCharacters.length && validParameterValueCharacters[c]) {
 				if (sb != null) {
 					sb.append(c);
 				}
 			} else {
 				if (sb == null) {
-					sb = new StringBuilder(value.substring(0, i));
+					sb = new StringBuilder(value.length() * 2);
+					sb.append(value.substring(0, i));
 				}
 				String hex = Integer.toString(c, 16);
 				sb.append('%').append(hex);
@@ -315,15 +385,77 @@ public final class GeoUri {
 		return (sb == null) ? value : sb.toString();
 	}
 
-	private static String decodeParamValue(String value) {
+	/**
+	 * Decodes escaped characters in a parameter value.
+	 * @param value the parameter value
+	 * @return the decoded value
+	 */
+	private static String decodeParameterValue(String value) {
 		Matcher m = hexPattern.matcher(value);
-		StringBuffer sb = new StringBuffer();
+		StringBuffer sb = null;
+
 		while (m.find()) {
+			if (sb == null) {
+				sb = new StringBuffer(value.length());
+			}
+
 			int hex = Integer.parseInt(m.group(1), 16);
-			m.appendReplacement(sb, "" + (char) hex);
+			m.appendReplacement(sb, Character.toString((char) hex));
 		}
+
+		if (sb == null) {
+			return value;
+		}
+
 		m.appendTail(sb);
 		return sb.toString();
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((coordA == null) ? 0 : coordA.hashCode());
+		result = prime * result + ((coordB == null) ? 0 : coordB.hashCode());
+		result = prime * result + ((coordC == null) ? 0 : coordC.hashCode());
+		result = prime * result + ((crs == null) ? 0 : crs.toLowerCase().hashCode());
+		result = prime * result + ((parameters == null) ? 0 : StringUtils.toLowerCase(parameters).hashCode());
+		result = prime * result + ((uncertainty == null) ? 0 : uncertainty.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (obj == null) return false;
+		if (getClass() != obj.getClass()) return false;
+		GeoUri other = (GeoUri) obj;
+		if (coordA == null) {
+			if (other.coordA != null) return false;
+		} else if (!coordA.equals(other.coordA)) return false;
+		if (coordB == null) {
+			if (other.coordB != null) return false;
+		} else if (!coordB.equals(other.coordB)) return false;
+		if (coordC == null) {
+			if (other.coordC != null) return false;
+		} else if (!coordC.equals(other.coordC)) return false;
+		if (crs == null) {
+			if (other.crs != null) return false;
+		} else if (!crs.equalsIgnoreCase(other.crs)) return false;
+		if (uncertainty == null) {
+			if (other.uncertainty != null) return false;
+		} else if (!uncertainty.equals(other.uncertainty)) return false;
+		if (parameters == null) {
+			if (other.parameters != null) return false;
+		} else {
+			if (other.parameters == null) return false;
+			if (parameters.size() != other.parameters.size()) return false;
+
+			Map<String, String> parametersLower = StringUtils.toLowerCase(parameters);
+			Map<String, String> otherParametersLower = StringUtils.toLowerCase(other.parameters);
+			if (!parametersLower.equals(otherParametersLower)) return false;
+		}
+		return true;
 	}
 
 	/**
@@ -337,6 +469,7 @@ public final class GeoUri {
 		private String crs;
 		private Double uncertainty;
 		private Map<String, String> parameters;
+		private CharacterBitSet validParamChars = new CharacterBitSet("a-zA-Z0-9-");
 
 		/**
 		 * Creates a new {@link GeoUri} builder.
@@ -368,7 +501,7 @@ public final class GeoUri {
 		 * @return this
 		 */
 		public Builder coordA(Double coordA) {
-			this.coordA = (coordA == null) ? 0.0 : coordA;
+			this.coordA = coordA;
 			return this;
 		}
 
@@ -378,7 +511,7 @@ public final class GeoUri {
 		 * @return this
 		 */
 		public Builder coordB(Double coordB) {
-			this.coordB = (coordB == null) ? 0.0 : coordB;
+			this.coordB = coordB;
 			return this;
 		}
 
@@ -401,8 +534,8 @@ public final class GeoUri {
 		 * @return this
 		 */
 		public Builder crs(String crs) {
-			if (crs != null && !isLabelText(crs)) {
-				throw new IllegalArgumentException("CRS can only contain letters, numbers, and hypens.");
+			if (crs != null && !validParamChars.containsOnly(crs)) {
+				throw Messages.INSTANCE.getIllegalArgumentException(24);
 			}
 			this.crs = crs;
 			return this;
@@ -428,8 +561,8 @@ public final class GeoUri {
 		 * @return this
 		 */
 		public Builder parameter(String name, String value) {
-			if (!isLabelText(name)) {
-				throw new IllegalArgumentException("Parameter names can only contain letters, numbers, and hyphens.");
+			if (!validParamChars.containsOnly(name)) {
+				throw Messages.INSTANCE.getIllegalArgumentException(23);
 			}
 
 			if (value == null) {

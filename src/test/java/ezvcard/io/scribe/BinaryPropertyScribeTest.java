@@ -20,7 +20,7 @@ import ezvcard.util.DataUri;
 import ezvcard.util.org.apache.commons.codec.binary.Base64;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ import ezvcard.util.org.apache.commons.codec.binary.Base64;
  * @author Michael Angstadt
  */
 public class BinaryPropertyScribeTest {
-	private final BinaryPropertyMarshallerImpl scribe = new BinaryPropertyMarshallerImpl();
+	private final BinaryPropertyScribeImpl scribe = new BinaryPropertyScribeImpl();
 	private final Sensei<BinaryTypeImpl> sensei = new Sensei<BinaryTypeImpl>(scribe);
 
 	private final String url = "http://example.com/image.jpg";
@@ -101,11 +101,11 @@ public class BinaryPropertyScribeTest {
 		sensei.assertPrepareParams(withUrl).versions(V2_1, V3_0).expected("TYPE", "jpeg").run();
 		sensei.assertPrepareParams(withUrl).versions(V4_0).expected("MEDIATYPE", "image/jpeg").run();
 
-		sensei.assertPrepareParams(withData).versions(V2_1).expected("TYPE", "jpeg").expected("ENCODING", "base64").run();
+		sensei.assertPrepareParams(withData).versions(V2_1).expected("TYPE", "jpeg").expected("ENCODING", "BASE64").run();
 		sensei.assertPrepareParams(withData).versions(V3_0).expected("TYPE", "jpeg").expected("ENCODING", "b").run();
 		sensei.assertPrepareParams(withData).versions(V4_0).expected("TYPE", "work").run();
 
-		sensei.assertPrepareParams(withDataNoContentType).versions(V2_1).expected("ENCODING", "base64").run();
+		sensei.assertPrepareParams(withDataNoContentType).versions(V2_1).expected("ENCODING", "BASE64").run();
 		sensei.assertPrepareParams(withDataNoContentType).versions(V3_0).expected("ENCODING", "b").run();
 		sensei.assertPrepareParams(withDataNoContentType).versions(V4_0).run();
 	}
@@ -291,8 +291,8 @@ public class BinaryPropertyScribeTest {
 		sensei.assertParseJson(dataUri).run(hasData(data, ImageType.JPEG));
 	}
 
-	private static class BinaryPropertyMarshallerImpl extends BinaryPropertyScribe<BinaryTypeImpl, ImageType> {
-		public BinaryPropertyMarshallerImpl() {
+	private static class BinaryPropertyScribeImpl extends BinaryPropertyScribe<BinaryTypeImpl, ImageType> {
+		public BinaryPropertyScribeImpl() {
 			super(BinaryTypeImpl.class, "BINARY");
 		}
 

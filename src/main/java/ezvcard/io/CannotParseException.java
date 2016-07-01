@@ -3,7 +3,7 @@ package ezvcard.io;
 import ezvcard.Messages;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,9 @@ import ezvcard.Messages;
  * date string).
  * @author Michael Angstadt
  */
-@SuppressWarnings("serial")
 public class CannotParseException extends RuntimeException {
+	private static final long serialVersionUID = -486457159436167471L;
+
 	/**
 	 * Creates a new "cannot parse" exception.
 	 */

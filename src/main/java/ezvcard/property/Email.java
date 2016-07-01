@@ -1,28 +1,27 @@
 package ezvcard.property;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.Warning;
 import ezvcard.parameter.EmailType;
+import ezvcard.parameter.Pid;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -36,7 +35,7 @@ import lombok.ToString;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -44,24 +43,24 @@ import lombok.ToString;
  * <p>
  * Defines an email address associated with the person.
  * </p>
- * 
+ *
  * <p>
  * <b>Code sample</b>
  * </p>
- * 
+ *
  * <pre class="brush:java">
  * VCard vcard = new VCard();
- * 
+ *
  * Email email = new Email(&quot;johndoe@hotmail.com&quot;);
- * email.addType(EmailType.HOME);
+ * email.getTypes().add(EmailType.HOME);
  * vcard.addEmail(email);
- * 
+ *
  * email = new Email(&quot;jdoe@company.com&quot;);
- * email.addType(EmailType.WORK);
+ * email.getTypes().add(EmailType.WORK);
  * email.setPref(1); //the most preferred email
  * vcard.addEmail(email);
  * </pre>
- * 
+ *
  * <p>
  * <b>Property name:</b> {@code EMAIL}
  * </p>
@@ -69,6 +68,9 @@ import lombok.ToString;
  * <b>Supported versions:</b> {@code 2.1, 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-36">RFC 6350 p.36</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-15">RFC 2426 p.15</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.15</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -82,47 +84,29 @@ public class Email extends TextProperty implements HasAltId {
 	}
 
 	/**
-	 * Gets all the TYPE parameters.
-	 * @return the TYPE parameters or empty set if there are none
+	 * Copy constructor.
+	 * @param original the property to make a copy of
 	 */
-	public Set<EmailType> getTypes() {
-		Set<String> values = parameters.getTypes();
-		Set<EmailType> types = new HashSet<EmailType>(values.size());
-		for (String value : values) {
-			types.add(EmailType.get(value));
-		}
-		return types;
+	public Email(Email original) {
+		super(original);
 	}
 
 	/**
-	 * Adds a TYPE parameter.
-	 * @param type the TYPE parameter to add
+	 * Gets the list that stores this property's email types (TYPE parameters).
+	 * @return the email types (this list is mutable) (e.g. "INTERNET", "WORK")
 	 */
-	public void addType(EmailType type) {
-		parameters.addType(type.getValue());
-	}
-
-	/**
-	 * Removes a TYPE parameter.
-	 * @param type the TYPE parameter to remove
-	 */
-	public void removeType(EmailType type) {
-		parameters.removeType(type.getValue());
+	public List<EmailType> getTypes() {
+		return parameters.new TypeParameterList<EmailType>() {
+			@Override
+			protected EmailType _asObject(String value) {
+				return EmailType.get(value);
+			}
+		};
 	}
 
 	@Override
-	public List<Integer[]> getPids() {
+	public List<Pid> getPids() {
 		return super.getPids();
-	}
-
-	@Override
-	public void addPid(int localId, int clientPidMapRef) {
-		super.addPid(localId, clientPidMapRef);
-	}
-
-	@Override
-	public void removePids() {
-		super.removePids();
 	}
 
 	@Override
@@ -154,9 +138,14 @@ public class Email extends TextProperty implements HasAltId {
 				//ignore because it is converted to a PREF parameter for 4.0 vCards
 				continue;
 			}
-			if (!type.isSupported(version)) {
+			if (!type.isSupportedBy(version)) {
 				warnings.add(new Warning(9, type.getValue()));
 			}
 		}
+	}
+
+	@Override
+	public Email copy() {
+		return new Email(this);
 	}
 }

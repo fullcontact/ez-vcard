@@ -1,20 +1,25 @@
 package ezvcard.property;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.Warning;
 import ezvcard.parameter.MediaTypeParameter;
+import ezvcard.parameter.Pid;
 import ezvcard.util.IOUtils;
 import lombok.*;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -104,7 +109,18 @@ public abstract class BinaryProperty<T extends MediaTypeParameter> extends VCard
 	 * @throws IOException if there is a problem reading from the file
 	 */
 	public BinaryProperty(File file, T type) throws IOException {
-		this(new FileInputStream(file), type);
+		this(new BufferedInputStream(new FileInputStream(file)), type);
+	}
+
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public BinaryProperty(BinaryProperty<T> original) {
+		super(original);
+		data = (original.data == null) ? null : Arrays.copyOf(original.data, original.data.length);
+		url = original.url;
+		contentType = original.contentType;
 	}
 
 	/**
@@ -188,18 +204,8 @@ public abstract class BinaryProperty<T extends MediaTypeParameter> extends VCard
 	}
 
 	@Override
-	public List<Integer[]> getPids() {
+	public List<Pid> getPids() {
 		return super.getPids();
-	}
-
-	@Override
-	public void addPid(int localId, int clientPidMapRef) {
-		super.addPid(localId, clientPidMapRef);
-	}
-
-	@Override
-	public void removePids() {
-		super.removePids();
 	}
 
 	@Override
@@ -227,5 +233,39 @@ public abstract class BinaryProperty<T extends MediaTypeParameter> extends VCard
 		if (url == null && data == null) {
 			warnings.add(new Warning(8));
 		}
+	}
+
+	@Override
+	protected Map<String, Object> toStringValues() {
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put("data", (data == null) ? "null" : "length: " + data.length);
+		values.put("url", url);
+		values.put("contentType", contentType);
+		return values;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((contentType == null) ? 0 : contentType.hashCode());
+		result = prime * result + Arrays.hashCode(data);
+		result = prime * result + ((url == null) ? 0 : url.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!super.equals(obj)) return false;
+		BinaryProperty<?> other = (BinaryProperty<?>) obj;
+		if (contentType == null) {
+			if (other.contentType != null) return false;
+		} else if (!contentType.equals(other.contentType)) return false;
+		if (!Arrays.equals(data, other.data)) return false;
+		if (url == null) {
+			if (other.url != null) return false;
+		} else if (!url.equals(other.url)) return false;
+		return true;
 	}
 }

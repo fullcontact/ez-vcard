@@ -18,6 +18,7 @@ import ezvcard.VCardDataType;
 import ezvcard.VCardVersion;
 import ezvcard.io.scribe.SkipMeScribe;
 import ezvcard.io.scribe.VCardPropertyScribe;
+import ezvcard.io.text.WriteContext;
 import ezvcard.parameter.AddressType;
 import ezvcard.parameter.EmailType;
 import ezvcard.parameter.TelephoneType;
@@ -39,7 +40,7 @@ import ezvcard.util.TelUri;
 import ezvcard.util.UtcOffset;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -135,11 +136,11 @@ public class JCardWriterTest {
 	}
 
 	@Test
-	public void setIndent() throws Throwable {
+	public void setPrettyPrint() throws Throwable {
 		StringWriter sw = new StringWriter();
 		JCardWriter writer = new JCardWriter(sw, true);
 		writer.setAddProdId(false);
-		writer.setIndent(true);
+		writer.setPrettyPrint(true);
 
 		VCard vcard = new VCard();
 		vcard.setFormattedName("John Doe");
@@ -154,13 +155,59 @@ public class JCardWriterTest {
 		//@formatter:off
 		String expected =
 		"[" + NEWLINE +
+		"  [" + NEWLINE +
+		"    \"vcard\"," + NEWLINE +
+		"    [" + NEWLINE +
+		"      [ \"version\", { }, \"text\", \"4.0\" ]," + NEWLINE +
+		"      [ \"fn\", { }, \"text\", \"John Doe\" ]" + NEWLINE +
+		"    ]" + NEWLINE +
+		"  ]," + NEWLINE +
+		"  [" + NEWLINE +
+		"    \"vcard\"," + NEWLINE +
+		"    [" + NEWLINE +
+		"      [ \"version\", { }, \"text\", \"4.0\" ]," + NEWLINE +
+		"      [ \"fn\", { }, \"text\", \"John Doe\" ]" + NEWLINE +
+		"    ]" + NEWLINE +
+		"  ]" + NEWLINE +
+		"]";
+		//@formatter:on
+		assertEquals(expected, sw.toString());
+	}
+
+	@Test
+	public void setPrettyPrinter() throws Throwable {
+		StringWriter sw = new StringWriter();
+		JCardWriter writer = new JCardWriter(sw, true);
+		writer.setAddProdId(false);
+		writer.setPrettyPrinter(new JCardPrettyPrinter());
+
+		VCard vcard = new VCard();
+		vcard.setFormattedName("John Doe");
+		writer.write(vcard);
+
+		vcard = new VCard();
+		vcard.setFormattedName("John Doe");
+		writer.write(vcard);
+
+		writer.close();
+
+		//@formatter:off
+		String expected =
 		"[" + NEWLINE +
-		"\"vcard\",[[" + NEWLINE +
-		"  \"version\",{},\"text\",\"4.0\"],[" + NEWLINE +
-		"  \"fn\",{},\"text\",\"John Doe\"]]],[" + NEWLINE +
-		"\"vcard\",[[" + NEWLINE +
-		"  \"version\",{},\"text\",\"4.0\"],[" + NEWLINE +
-		"  \"fn\",{},\"text\",\"John Doe\"]]]" + NEWLINE +
+		"  [" + NEWLINE +
+		"    \"vcard\"," + NEWLINE +
+		"    [" + NEWLINE +
+		"      [ \"version\", { }, \"text\", \"4.0\" ]," + NEWLINE +
+		"      [ \"fn\", { }, \"text\", \"John Doe\" ]" + NEWLINE +
+		"    ]" + NEWLINE +
+		"  ]," + NEWLINE +
+		"  [" + NEWLINE +
+		"    \"vcard\"," + NEWLINE +
+		"    [" + NEWLINE +
+		"      [ \"version\", { }, \"text\", \"4.0\" ]," + NEWLINE +
+		"      [ \"fn\", { }, \"text\", \"John Doe\" ]" + NEWLINE +
+		"    ]" + NEWLINE +
+		"  ]" + NEWLINE +
 		"]";
 		//@formatter:on
 		assertEquals(expected, sw.toString());
@@ -279,6 +326,20 @@ public class JCardWriterTest {
 
 	@Test
 	public void jcard_example() throws Throwable {
+		VCard vcard = createExample();
+
+		assertValidate(vcard).versions(VCardVersion.V4_0).run();
+		StringWriter sw = new StringWriter();
+		JCardWriter writer = new JCardWriter(sw);
+		writer.setAddProdId(false);
+		writer.write(vcard);
+		writer.close();
+		String actual = sw.toString();
+
+		assertExample(actual, "jcard-example.json");
+	}
+
+	public static VCard createExample() {
 		VCard vcard = new VCard();
 
 		vcard.setFormattedName("SimonPerreault");
@@ -286,8 +347,8 @@ public class JCardWriterTest {
 		StructuredName n = new StructuredName();
 		n.setFamily("Perreault");
 		n.setGiven("Simon");
-		n.addSuffix("ing.jr");
-		n.addSuffix("M.Sc.");
+		n.getSuffixes().add("ing.jr");
+		n.getSuffixes().add("M.Sc.");
 		vcard.setStructuredName(n);
 
 		Birthday bday = new Birthday(PartialDate.builder().month(2).date(3).build());
@@ -310,22 +371,22 @@ public class JCardWriterTest {
 		adr.setRegion("QC");
 		adr.setPostalCode("G1V2M2");
 		adr.setCountry("Canada");
-		adr.addType(AddressType.WORK);
+		adr.getTypes().add(AddressType.WORK);
 		vcard.addAddress(adr);
 
 		TelUri telUri = new TelUri.Builder("+1-418-656-9254").extension("102").build();
 		Telephone tel = new Telephone(telUri);
-		tel.addType(TelephoneType.WORK);
-		tel.addType(TelephoneType.VOICE);
+		tel.getTypes().add(TelephoneType.WORK);
+		tel.getTypes().add(TelephoneType.VOICE);
 		tel.setPref(1);
 		vcard.addTelephoneNumber(tel);
 
 		tel = new Telephone(new TelUri.Builder("+1-418-262-6501").build());
-		tel.addType(TelephoneType.WORK);
-		tel.addType(TelephoneType.CELL);
-		tel.addType(TelephoneType.VOICE);
-		tel.addType(TelephoneType.VIDEO);
-		tel.addType(TelephoneType.TEXT);
+		tel.getTypes().add(TelephoneType.WORK);
+		tel.getTypes().add(TelephoneType.CELL);
+		tel.getTypes().add(TelephoneType.VOICE);
+		tel.getTypes().add(TelephoneType.VIDEO);
+		tel.getTypes().add(TelephoneType.TEXT);
 		vcard.addTelephoneNumber(tel);
 
 		vcard.addEmail("simon.perreault@viagenie.ca", EmailType.WORK);
@@ -341,10 +402,11 @@ public class JCardWriterTest {
 		vcard.setTimezone(new Timezone(new UtcOffset(false, -5, 0)));
 
 		vcard.addUrl("http://nomis80.org").setType("home");
+		return vcard;
+	}
 
-		assertValidate(vcard).versions(VCardVersion.V4_0).run();
-
-		assertExample(vcard, "jcard-example.json", new Filter() {
+	public static void assertExample(String actual, String exampleFileName) throws IOException {
+		Filter filter = new Filter() {
 			public String filter(String json) {
 				//replace "date-and-or-time" data types with the data types ez-vcard uses
 				//ez-vcard avoids the use of "date-and-or-time"
@@ -352,23 +414,13 @@ public class JCardWriterTest {
 				json = json.replaceAll("\"anniversary\",\\{\\},\"date-and-or-time\"", "\"anniversary\",{},\"date-time\"");
 				return json;
 			}
-		});
-	}
+		};
 
-	private void assertExample(VCard vcard, String exampleFileName, Filter filter) throws IOException {
-		StringWriter sw = new StringWriter();
-		JCardWriter writer = new JCardWriter(sw);
-		writer.setAddProdId(false);
-		writer.write(vcard);
-		writer.close();
-
-		String expected = new String(IOUtils.toByteArray(getClass().getResourceAsStream(exampleFileName)));
+		String expected = new String(IOUtils.toByteArray(JCardWriterTest.class.getResourceAsStream(exampleFileName)));
 		expected = expected.replaceAll("\\s", "");
 		if (filter != null) {
 			expected = filter.filter(expected);
 		}
-
-		String actual = sw.toString();
 
 		assertEquals(expected, actual);
 	}
@@ -383,6 +435,11 @@ public class JCardWriterTest {
 		public TestProperty(JCardValue value) {
 			this.value = value;
 		}
+
+		@Override
+		public TestProperty copy() {
+			throw new UnsupportedOperationException("Copy method should not be used.");
+		}
 	}
 
 	private static class TestScribe extends VCardPropertyScribe<TestProperty> {
@@ -396,7 +453,7 @@ public class JCardWriterTest {
 		}
 
 		@Override
-		protected String _writeText(TestProperty property, VCardVersion version) {
+		protected String _writeText(TestProperty property, WriteContext context) {
 			return null;
 		}
 

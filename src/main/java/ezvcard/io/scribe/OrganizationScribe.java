@@ -6,12 +6,13 @@ import ezvcard.VCardDataType;
 import ezvcard.VCardVersion;
 import ezvcard.io.html.HCardElement;
 import ezvcard.io.json.JCardValue;
+import ezvcard.io.text.WriteContext;
 import ezvcard.io.xml.XCardElement;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.Organization;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -50,7 +51,7 @@ public class OrganizationScribe extends VCardPropertyScribe<Organization> {
 	}
 
 	@Override
-	protected String _writeText(Organization property, VCardVersion version) {
+	protected String _writeText(Organization property, WriteContext context) {
 		return structured(property.getValues().toArray());
 	}
 
@@ -60,7 +61,7 @@ public class OrganizationScribe extends VCardPropertyScribe<Organization> {
 
 		SemiStructuredIterator it = semistructured(value);
 		while (it.hasNext()) {
-			property.addValue(it.next());
+			property.getValues().add(it.next());
 		}
 
 		return property;
@@ -89,16 +90,16 @@ public class OrganizationScribe extends VCardPropertyScribe<Organization> {
 
 		String orgName = element.firstValue("organization-name");
 		if (orgName != null) {
-			property.addValue(orgName);
+			property.getValues().add(orgName);
 		}
 
 		String orgUnit = element.firstValue("organization-unit");
 		if (orgUnit != null) {
-			property.addValue(orgUnit);
+			property.getValues().add(orgUnit);
 		}
 
 		if (property.getValues().isEmpty()) {
-			property.addValue(element.value());
+			property.getValues().add(element.value());
 		}
 
 		return property;
@@ -124,7 +125,7 @@ public class OrganizationScribe extends VCardPropertyScribe<Organization> {
 
 		StructuredIterator it = structured(value);
 		while (it.hasNext()) {
-			property.addValue(it.nextString());
+			property.getValues().add(it.nextString());
 		}
 
 		return property;

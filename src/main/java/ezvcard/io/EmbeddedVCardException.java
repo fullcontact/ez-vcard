@@ -4,7 +4,7 @@ import ezvcard.VCard;
 import ezvcard.property.VCardProperty;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,10 @@ import ezvcard.property.VCardProperty;
  */
 @SuppressWarnings("serial")
 public class EmbeddedVCardException extends RuntimeException {
+	/*
+	 * Serialization note: Not going to bother adding a serialVersionUID, since
+	 * VCard is not serializable.
+	 */
 	private final VCard vcard;
 	private final InjectionCallback callback;
 
@@ -97,7 +101,7 @@ public class EmbeddedVCardException extends RuntimeException {
 	/**
 	 * Injects an unmarshalled vCard into the property object.
 	 */
-	public static interface InjectionCallback {
+	public interface InjectionCallback {
 		/**
 		 * Injects an unmarshalled vCard into the property object.
 		 * @param vcard the vCard to inject

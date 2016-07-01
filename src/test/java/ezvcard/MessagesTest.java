@@ -10,7 +10,7 @@ import java.util.Properties;
 import org.junit.Test;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,30 @@ public class MessagesTest {
 	@Test
 	public void getParseMessage_does_not_exist() {
 		assertNull(messages.getParseMessage(5000));
+	}
+
+	@Test
+	public void getExceptionMessage() {
+		String actual = messages.getExceptionMessage(1);
+		String expected = messages.getMessage("exception.0", 1, messages.getMessage("exception.1"));
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void getExceptionMessage_does_not_exist() {
+		assertNull(messages.getExceptionMessage(5000));
+	}
+
+	@Test
+	public void getIllegalArgumentException() {
+		String actual = messages.getIllegalArgumentException(1).getMessage();
+		String expected = messages.getMessage("exception.0", 1, messages.getMessage("exception.1"));
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void getIllegalArgumentException_does_not_exist() {
+		assertNull(messages.getIllegalArgumentException(5000));
 	}
 
 	@Test

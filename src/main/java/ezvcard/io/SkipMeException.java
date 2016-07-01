@@ -3,7 +3,7 @@ package ezvcard.io;
 import ezvcard.VCard;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -37,8 +37,9 @@ import ezvcard.VCard;
  * unmarshalled {@link VCard} object.
  * @author Michael Angstadt
  */
-@SuppressWarnings("serial")
 public class SkipMeException extends RuntimeException {
+	private static final long serialVersionUID = -2317261463920887137L;
+
 	/**
 	 * Creates a skip-me exception.
 	 */

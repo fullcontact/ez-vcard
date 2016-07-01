@@ -16,10 +16,11 @@ import org.xml.sax.SAXException;
 
 import ezvcard.VCardDataType;
 import ezvcard.VCardVersion;
+import ezvcard.io.xml.XCardElement.XCardValue;
 import ezvcard.util.XmlUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -125,6 +126,38 @@ public class XCardElementTest {
 	}
 
 	@Test
+	public void firstValue() {
+		XCardElement xcardElement = build("<prop><text>one</text></prop>");
+		XCardValue child = xcardElement.firstValue();
+		assertEquals(VCardDataType.TEXT, child.getDataType());
+		assertEquals("one", child.getValue());
+	}
+
+	@Test
+	public void firstValue_unknown() {
+		XCardElement xcardElement = build("<prop><unknown>one</unknown></prop>");
+		XCardValue child = xcardElement.firstValue();
+		assertNull(child.getDataType());
+		assertEquals("one", child.getValue());
+	}
+
+	@Test
+	public void firstValue_namespace() {
+		XCardElement xcardElement = build("<prop><n:foo xmlns:n=\"http://example.com\">one</n:foo><text>two</text></prop>");
+		XCardValue child = xcardElement.firstValue();
+		assertEquals(VCardDataType.TEXT, child.getDataType());
+		assertEquals("two", child.getValue());
+	}
+
+	@Test
+	public void firstValue_no_xcard_children() {
+		XCardElement xcardElement = build("<prop><n:foo xmlns:n=\"http://example.com\">one</n:foo><n:bar xmlns:n=\"http://example.com\">two</n:bar></prop>");
+		XCardValue child = xcardElement.firstValue();
+		assertNull(child.getDataType());
+		assertEquals("onetwo", child.getValue());
+	}
+
+	@Test
 	public void append() {
 		XCardElement xcardElement = build("<prop><one>1</one></prop>");
 		Element appendedElement = xcardElement.append("two", "2");
@@ -194,7 +227,7 @@ public class XCardElementTest {
 		} catch (SAXException e) {
 			throw new RuntimeException(e);
 		}
-		Element element = XmlUtils.getFirstChildElement(XmlUtils.getRootElement(document));
+		Element element = XmlUtils.getFirstChildElement(document.getDocumentElement());
 		return new XCardElement(element);
 	}
 }

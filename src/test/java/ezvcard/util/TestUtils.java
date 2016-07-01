@@ -1,7 +1,10 @@
 package ezvcard.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -10,6 +13,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,7 +32,7 @@ import ezvcard.property.VCardProperty;
 import org.junit.Ignore;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -138,23 +142,24 @@ public class TestUtils {
 		}
 	}
 
-	private static boolean checkCodes(List<Warning> warnings, Integer... expectedCodes) {
+	public static boolean checkCodes(List<Warning> warnings, Integer... expectedCodes) {
 		if (warnings.size() != expectedCodes.length) {
 			return false;
 		}
 
-		List<Integer> actualCodes = new ArrayList<Integer>(); //don't use a Set because there can be multiple warnings with the same code
-		for (Warning warning : warnings) {
-			actualCodes.add(warning.getCode());
-		}
+		/*
+		 * Don't use a Set because there can be multiple warnings with the same
+		 * code.
+		 */
+		List<Integer> expected = new ArrayList<Integer>(Arrays.asList(expectedCodes));
 
-		for (Integer code : expectedCodes) {
-			boolean found = actualCodes.remove((Object) code);
-			if (!found) {
+		for (Warning warning : warnings) {
+			Integer code = warning.getCode();
+			boolean removed = expected.remove((Object) code);
+			if (!removed) {
 				return false;
 			}
 		}
-
 		return true;
 	}
 
@@ -204,12 +209,13 @@ public class TestUtils {
 		 */
 		public void run() {
 			for (VCardVersion version : versions) {
+				Map<VCardProperty, Integer[]> expectedPropCodes = new HashMap<VCardProperty, Integer[]>(this.expectedPropCodes);
 				ValidationWarnings warnings = vcard.validate(version);
 				for (Map.Entry<VCardProperty, List<Warning>> entry : warnings) {
 					VCardProperty property = entry.getKey();
 					List<Warning> actualWarnings = entry.getValue();
 
-					Integer[] expectedCodes = expectedPropCodes.get(property);
+					Integer[] expectedCodes = expectedPropCodes.remove(property);
 					if (expectedCodes == null) {
 						String className = (property == null) ? "vCard" : property.getClass().getSimpleName();
 						fail("For version " + version + ", " + className + " had " + actualWarnings.size() + " warnings, but none were expected.  Actual warnings:\n" + warnings);
@@ -220,60 +226,16 @@ public class TestUtils {
 						fail("For version " + version + ", expected validation warnings did not match actual warnings.  Actual warnings:\n" + warnings);
 					}
 				}
-			}
-		}
-	}
 
-	/**
-	 * Asserts the validation of a property object.
-	 * @param property the property object
-	 * @return the validation checker object
-	 */
-	public static PropValidateChecker assertValidate(VCardProperty property) {
-		return new PropValidateChecker(property);
-	}
-
-	public static class PropValidateChecker {
-		private final VCardProperty property;
-		private VCard vcard;
-		private VCardVersion versions[] = VCardVersion.values();
-
-		public PropValidateChecker(VCardProperty property) {
-			this.property = property;
-			vcard(new VCard());
-		}
-
-		/**
-		 * Defines the versions to check (defaults to all versions).
-		 * @param versions the versions to check
-		 * @return this
-		 */
-		public PropValidateChecker versions(VCardVersion... versions) {
-			this.versions = versions;
-			return this;
-		}
-
-		/**
-		 * Defines the vCard instance to use (defaults to an empty vCard).
-		 * @param vcard the vCard instance
-		 * @return this
-		 */
-		public PropValidateChecker vcard(VCard vcard) {
-			vcard.addProperty(property);
-			this.vcard = vcard;
-			return this;
-		}
-
-		/**
-		 * Performs the validation check.
-		 * @param expectedCodes the expected warning codes
-		 */
-		public void run(Integer... expectedCodes) {
-			for (VCardVersion version : versions) {
-				List<Warning> warnings = property.validate(version, vcard);
-				boolean passed = checkCodes(warnings, expectedCodes);
-				if (!passed) {
-					fail("For version " + version + ", expected codes were " + Arrays.toString(expectedCodes) + " but were actually:\n" + warnings);
+				if (!expectedPropCodes.isEmpty()) {
+					List<String> lines = new ArrayList<String>();
+					for (Map.Entry<VCardProperty, Integer[]> entry : expectedPropCodes.entrySet()) {
+						VCardProperty property = entry.getKey();
+						String className = (property == null) ? null : property.getClass().getSimpleName();
+						Integer[] expectedCodes = entry.getValue();
+						lines.add(className + ": " + Arrays.toString(expectedCodes));
+					}
+					fail("For version " + version + ", the following validation warnings were expected, but NOT thrown:\n" + lines + "\nActual warnings:\n" + warnings);
 				}
 			}
 		}
@@ -286,6 +248,21 @@ public class TestUtils {
 	 */
 	public static void assertIntEquals(int expected, Integer actual) {
 		assertEquals(Integer.valueOf(expected), actual);
+	}
+
+	/**
+	 * Asserts the contents of a collection. Does not check for order.
+	 * @param actual the actual collection
+	 * @param expectedElements the elements that are expected to be in the
+	 * collection (order does not matter)
+	 */
+	public static <T> void assertCollectionContains(Collection<T> actual, T... expectedElements) {
+		assertEquals(expectedElements.length, actual.size());
+
+		Collection<T> actualCopy = new ArrayList<T>(actual);
+		for (T expectedElement : expectedElements) {
+			assertTrue("Collection did not contain: " + expectedElement, actualCopy.remove(expectedElement));
+		}
 	}
 
 	/**
@@ -367,6 +344,69 @@ public class TestUtils {
 	 */
 	public static Date utc(String text) {
 		return date(text + " +0000");
+	}
+
+	/**
+	 * <p>
+	 * Asserts some of the basic rules for the equals() method:
+	 * </p>
+	 * <ul>
+	 * <li>The same object instance is equal to itself.</li>
+	 * <li>Passing {@code null} into the method returns false.</li>
+	 * <li>Passing an instance of a different class into the method returns
+	 * false.</li>
+	 * </ul>
+	 * @param object an instance of the class to test.
+	 */
+	public static void assertEqualsMethodEssentials(Object object) {
+		assertEquals(object, object);
+		assertFalse(object.equals(null));
+		assertFalse(object.equals("other class"));
+	}
+
+	/**
+	 * Asserts that two objects are equal according to their equals() method.
+	 * Also asserts that their hash codes are the same.
+	 * @param one the first object
+	 * @param two the second object
+	 */
+	public static void assertEqualsAndHash(Object one, Object two) {
+		assertEquals(one, two);
+		assertEquals(two, one);
+		assertEquals(one.hashCode(), two.hashCode());
+	}
+
+	/**
+	 * Asserts that calling {@code one.equals(two)} and {@code two.equals(one)}
+	 * will both return false.
+	 * @param one the first object
+	 * @param two the second object
+	 */
+	public static void assertNotEqualsBothWays(Object one, Object two) {
+		assertNotEquals(one, two);
+		assertNotEquals(two, one);
+	}
+
+	/**
+	 * Asserts that none of the given objects are equal to each other.
+	 * @param objects the objects
+	 */
+	public static void assertNothingIsEqual(Object... objects) {
+		assertNothingIsEqual(Arrays.asList(objects));
+	}
+
+	/**
+	 * Asserts that none of the given objects are equal to each other.
+	 * @param objects the objects
+	 */
+	public static void assertNothingIsEqual(Iterable<Object> objects) {
+		for (Object object1 : objects) {
+			for (Object object2 : objects) {
+				if (object1 != object2) {
+					assertNotEquals("Objects should not be equal:\n" + object1 + "\n" + object2, object1, object2);
+				}
+			}
+		}
 	}
 
 	public static <T> T[] each(T... t) {

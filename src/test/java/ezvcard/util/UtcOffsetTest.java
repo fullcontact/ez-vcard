@@ -2,11 +2,13 @@ package ezvcard.util;
 
 import static ezvcard.util.TestUtils.buildTimezone;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import nl.jqno.equalsverifier.EqualsVerifier;
 
 import org.junit.Test;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -67,11 +69,17 @@ public class UtcOffsetTest {
 		assertParse("+530", 5, 30);
 		assertParse("-530", -5, 30);
 		assertParse("5:00", 5, 0);
+		assertParse("5:", 5, 0);
 		assertParse("10:00", 10, 0);
+		assertParse("10:", 10, 0);
 		assertParse("+5:00", 5, 0);
+		assertParse("+5:", 5, 0);
 		assertParse("+10:00", 10, 0);
+		assertParse("+10:", 10, 0);
 		assertParse("-5:00", -5, 0);
+		assertParse("-5:", -5, 0);
 		assertParse("-10:00", -10, 0);
+		assertParse("-10:", -10, 0);
 		assertParse("5:30", 5, 30);
 		assertParse("10:30", 10, 30);
 		assertParse("+5:30", 5, 30);
@@ -102,6 +110,10 @@ public class UtcOffsetTest {
 		assertParse("+10:30", 10, 30);
 		assertParse("-05:30", -5, 30);
 		assertParse("-10:30", -10, 30);
+		assertParseInvalid("invalid");
+		assertParseInvalid("050030");
+		assertParseInvalid("05:00:30");
+		assertParseInvalid("four"); //expected number of characters, but they are not numbers
 	}
 
 	@Test
@@ -111,13 +123,8 @@ public class UtcOffsetTest {
 		assertEquals(expected, actual);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void parse_invalid() {
-		UtcOffset.parse("invalid");
-	}
-
 	@Test
-	public void toString_() {
+	public void toString_with_argument() {
 		{
 			boolean extended = false;
 
@@ -169,6 +176,23 @@ public class UtcOffsetTest {
 				assertToString(positive, 0, 5, extended, "-00:05");
 			}
 		}
+
+	}
+
+	@Test
+	public void toString_no_arguments() {
+		UtcOffset offset = new UtcOffset(true, 5, 0);
+		String actual = offset.toString();
+		assertEquals("+0500", actual);
+	}
+
+	private static void assertParseInvalid(String input) {
+		try {
+			UtcOffset.parse(input);
+			fail("IllegalArgumentException expected.");
+		} catch (IllegalArgumentException e) {
+			//expected
+		}
 	}
 
 	private static void assertParse(String input, int expectedHour, int expectedMinute) {
@@ -181,5 +205,10 @@ public class UtcOffsetTest {
 		UtcOffset offset = new UtcOffset(positive, hour, minute);
 		String actual = offset.toString(extended);
 		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void equals_contract() {
+		EqualsVerifier.forClass(UtcOffset.class).usingGetClass().verify();
 	}
 }

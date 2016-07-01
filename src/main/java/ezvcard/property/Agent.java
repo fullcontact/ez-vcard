@@ -1,11 +1,11 @@
 package ezvcard.property;
 
 import java.text.NumberFormat;
-import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
+import ezvcard.SupportedVersions;
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.ValidationWarnings;
@@ -13,17 +13,17 @@ import ezvcard.Warning;
 import lombok.*;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are met: 
+ modification, are permitted provided that the following conditions are met:
 
  1. Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer. 
+ list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution. 
+ and/or other materials provided with the distribution.
 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -37,7 +37,7 @@ import lombok.*;
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  The views and conclusions contained in the software and documentation are those
- of the authors and should not be interpreted as representing official policies, 
+ of the authors and should not be interpreted as representing official policies,
  either expressed or implied, of the FreeBSD Project.
  */
 
@@ -45,18 +45,18 @@ import lombok.*;
  * <p>
  * Defines information about the person's agent.
  * </p>
- * 
+ *
  * <p>
  * <b>Code sample (creating)</b>
  * </p>
- * 
+ *
  * <pre class="brush:java">
  * VCard vcard = new VCard();
- * 
+ *
  * //URL
  * Agent agent = new Agent(&quot;http://www.linkedin.com/BobSmith&quot;);
  * vcard.setAgent(agent);
- * 
+ *
  * //vCard
  * VCard agentVCard = new VCard();
  * agentVCard.setFormattedName(&quot;Bob Smith&quot;);
@@ -65,37 +65,40 @@ import lombok.*;
  * agent = new Agent(agentVCard);
  * vcard.setAgent(agent);
  * </pre>
- * 
+ *
  * <p>
  * <b>Code sample (retrieving)</b>
  * </p>
- * 
+ *
  * <pre class="brush:java">
  * VCard vcard = ...
  * Agent agent = vcard.getAgent();
- * 
+ *
  * String url = agent.getUrl();
  * if (url != null){
  *   //property value is a URL
  * }
- * 
+ *
  * VCard agentVCard = agent.getVCard();
  * if (agentVCard != null){
  *   //property value is a vCard
  * }
  * </pre>
- * 
+ *
  * <p>
  * <b>Property name:</b> {@code AGENT}
  * </p>
  * <p>
  * <b>Supported versions:</b> {@code 2.1, 3.0}
  * </p>
- * 
+ *
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-19">RFC 2426 p.19</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.18</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
+@SupportedVersions({ VCardVersion.V2_1, VCardVersion.V3_0 })
 public class Agent extends VCardProperty {
 	private String url;
 	private VCard vcard;
@@ -123,9 +126,14 @@ public class Agent extends VCardProperty {
 		setVCard(vcard);
 	}
 
-	@Override
-	public Set<VCardVersion> _supportedVersions() {
-		return EnumSet.of(VCardVersion.V2_1, VCardVersion.V3_0);
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Agent(Agent original) {
+		super(original);
+		url = original.url;
+		vcard = (original.vcard == null) ? null : new VCard(original.vcard);
 	}
 
 	/**
@@ -187,5 +195,41 @@ public class Agent extends VCardProperty {
 				}
 			}
 		}
+	}
+
+	@Override
+	protected Map<String, Object> toStringValues() {
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		values.put("url", url);
+		values.put("vcard", vcard);
+		return values;
+	}
+
+	@Override
+	public Agent copy() {
+		return new Agent(this);
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((url == null) ? 0 : url.hashCode());
+		result = prime * result + ((vcard == null) ? 0 : vcard.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) return true;
+		if (!super.equals(obj)) return false;
+		Agent other = (Agent) obj;
+		if (url == null) {
+			if (other.url != null) return false;
+		} else if (!url.equals(other.url)) return false;
+		if (vcard == null) {
+			if (other.vcard != null) return false;
+		} else if (!vcard.equals(other.vcard)) return false;
+		return true;
 	}
 }

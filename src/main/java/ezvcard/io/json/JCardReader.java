@@ -10,6 +10,8 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
 
+import com.fasterxml.jackson.core.JsonParser;
+
 import ezvcard.VCard;
 import ezvcard.VCardDataType;
 import ezvcard.VCardVersion;
@@ -26,7 +28,7 @@ import ezvcard.property.RawProperty;
 import ezvcard.property.VCardProperty;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -60,6 +62,7 @@ import ezvcard.property.VCardProperty;
  * </p>
  * <p>
  * <b>Example:</b>
+ * </p>
  * 
  * <pre class="brush:java">
  * File file = new File("vcards.json");
@@ -74,8 +77,6 @@ import ezvcard.property.VCardProperty;
  *   if (reader != null) reader.close();
  * }
  * </pre>
- * 
- * </p>
  * @author Michael Angstadt
  * @see <a href="http://tools.ietf.org/html/rfc7095">RFC 7095</a>
  */
@@ -109,6 +110,13 @@ public class JCardReader extends StreamReader {
 	 */
 	public JCardReader(Reader reader) {
 		this.reader = new JCardRawReader(reader);
+	}
+
+	/**
+	 * @param parser the parser to read from
+	 */
+	public JCardReader(JsonParser parser) {
+		this.reader = new JCardRawReader(parser, true);
 	}
 
 	@Override

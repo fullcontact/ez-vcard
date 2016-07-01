@@ -16,7 +16,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@ import java.nio.charset.Charset;
  * I/O helper classes.
  * @author Michael Angstadt
  */
-public class IOUtils {
+public final class IOUtils {
 	private static final Charset UTF8 = Charset.forName("UTF-8");
 
 	/**

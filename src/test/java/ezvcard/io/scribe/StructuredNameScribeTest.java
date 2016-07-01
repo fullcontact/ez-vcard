@@ -1,17 +1,14 @@
 package ezvcard.io.scribe;
 
-import static org.junit.Assert.assertEquals;
-
 import java.util.Arrays;
 
 import org.junit.Test;
 
 import ezvcard.io.json.JCardValue;
-import ezvcard.io.scribe.Sensei.Check;
 import ezvcard.property.StructuredName;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -50,25 +47,27 @@ public class StructuredNameScribeTest {
 	{
 		withAllValues.setGiven("Jonathan");
 		withAllValues.setFamily("Doe");
-		withAllValues.addAdditional("Joh;nny,");
-		withAllValues.addAdditional("John");
-		withAllValues.addPrefix("Mr.");
-		withAllValues.addSuffix("III");
+		withAllValues.getAdditionalNames().add("Joh;nny,");
+		withAllValues.getAdditionalNames().add("John");
+		withAllValues.getPrefixes().add("Mr.");
+		withAllValues.getSuffixes().add("III");
 	}
 	private final StructuredName withEmptyValues = new StructuredName();
 	{
 		withEmptyValues.setGiven("Jonathan");
 		withEmptyValues.setFamily(null);
-		withEmptyValues.addAdditional("Joh;nny,");
-		withEmptyValues.addAdditional("John");
+		withEmptyValues.getAdditionalNames().add("Joh;nny,");
+		withEmptyValues.getAdditionalNames().add("John");
 	}
 	private final StructuredName empty = new StructuredName();
 
 	@Test
 	public void writeText() {
 		sensei.assertWriteText(withAllValues).run("Doe;Jonathan;Joh\\;nny\\,,John;Mr.;III");
-		sensei.assertWriteText(withEmptyValues).run(";Jonathan;Joh\\;nny\\,,John;;");
-		sensei.assertWriteText(empty).run(";;;;");
+		sensei.assertWriteText(withEmptyValues).run(";Jonathan;Joh\\;nny\\,,John");
+		sensei.assertWriteText(withEmptyValues).includeTrailingSemicolons(true).run(";Jonathan;Joh\\;nny\\,,John;;");
+		sensei.assertWriteText(empty).run("");
+		sensei.assertWriteText(empty).includeTrailingSemicolons(true).run(";;;;");
 	}
 
 	@Test
@@ -111,10 +110,10 @@ public class StructuredNameScribeTest {
 
 	@Test
 	public void parseText() {
-		sensei.assertParseText("Doe;Jonathan;Joh\\;nny\\,,John;Mr.;III").run(is(withAllValues));
-		sensei.assertParseText(";Jonathan;Joh\\;nny\\,,John;;").run(is(withEmptyValues));
-		sensei.assertParseText(";;;;").run(is(empty));
-		sensei.assertParseText("").run(is(empty));
+		sensei.assertParseText("Doe;Jonathan;Joh\\;nny\\,,John;Mr.;III").run(withAllValues);
+		sensei.assertParseText(";Jonathan;Joh\\;nny\\,,John;;").run(withEmptyValues);
+		sensei.assertParseText(";;;;").run(empty);
+		sensei.assertParseText("").run(empty);
 	}
 
 	@Test
@@ -127,7 +126,7 @@ public class StructuredNameScribeTest {
 		"<additional>John</additional>" +
 		"<prefix>Mr.</prefix>" +
 		"<suffix>III</suffix>"
-		).run(is(withAllValues));
+		).run(withAllValues);
 
 		sensei.assertParseXml(
 		"<surname/>" +
@@ -136,7 +135,7 @@ public class StructuredNameScribeTest {
 		"<additional>John</additional>" +
 		"<prefix/>" +
 		"<suffix/>"
-		).run(is(withEmptyValues));
+		).run(withEmptyValues);
 
 		sensei.assertParseXml(
 		"<surname/>" +
@@ -144,7 +143,7 @@ public class StructuredNameScribeTest {
 		"<additional/>" +
 		"<prefix/>" +
 		"<suffix/>"
-		).run(is(empty));
+		).run(empty);
 		//@formatter:on
 	}
 
@@ -160,7 +159,7 @@ public class StructuredNameScribeTest {
 			"<span class=\"honorific-prefix\">Mr.</span>" +
 			"<span class=\"honorific-suffix\">III</span>" +
 		"</div>"
-		).run(is(withAllValues));
+		).run(withAllValues);
 
 		sensei.assertParseHtml(
 		"<div>" +
@@ -168,42 +167,30 @@ public class StructuredNameScribeTest {
 			"<span class=\"additional-name\">Joh;nny,</span>" +
 			"<span class=\"additional-name\">John</span>" +
 		"</div>"
-		).run(is(withEmptyValues));
+		).run(withEmptyValues);
 		
 		sensei.assertParseHtml(
 		"<div>" +
 			"<span class=\"given-name\"></span>" +
 		"</div>"
-		).run(is(empty));
+		).run(empty);
 		//@formatter:on
 	}
 
 	@Test
 	public void parseJson() {
 		JCardValue value = JCardValue.structured("Doe", "Jonathan", Arrays.asList("Joh;nny,", "John"), "Mr.", "III");
-		sensei.assertParseJson(value).run(is(withAllValues));
+		sensei.assertParseJson(value).run(withAllValues);
 
 		value = JCardValue.structured(null, "Jonathan", Arrays.asList("Joh;nny,", "John"), "", null);
-		sensei.assertParseJson(value).run(is(withEmptyValues));
+		sensei.assertParseJson(value).run(withEmptyValues);
 
 		value = JCardValue.structured(null, "Jonathan", Arrays.asList("Joh;nny,", "John"));
-		sensei.assertParseJson(value).run(is(withEmptyValues));
+		sensei.assertParseJson(value).run(withEmptyValues);
 
 		value = JCardValue.structured(null, null, "", null, null);
-		sensei.assertParseJson(value).run(is(empty));
+		sensei.assertParseJson(value).run(empty);
 
-		sensei.assertParseJson("").run(is(empty));
-	}
-
-	private Check<StructuredName> is(final StructuredName expected) {
-		return new Check<StructuredName>() {
-			public void check(StructuredName actual) {
-				assertEquals(expected.getFamily(), actual.getFamily());
-				assertEquals(expected.getGiven(), actual.getGiven());
-				assertEquals(expected.getAdditional(), actual.getAdditional());
-				assertEquals(expected.getPrefixes(), actual.getPrefixes());
-				assertEquals(expected.getSuffixes(), actual.getSuffixes());
-			}
-		};
+		sensei.assertParseJson("").run(empty);
 	}
 }

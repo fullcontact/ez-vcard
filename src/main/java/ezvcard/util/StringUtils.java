@@ -1,10 +1,11 @@
 package ezvcard.util;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -36,7 +37,7 @@ import java.util.Map;
  * Helper class for dealing with strings.
  * @author Michael Angstadt
  */
-public class StringUtils {
+public final class StringUtils {
 	/**
 	 * The local computer's newline character sequence.
 	 */
@@ -116,6 +117,7 @@ public class StringUtils {
 	 * Joins a collection of values into a delimited list.
 	 * @param collection the collection of values
 	 * @param delimiter the delimiter (e.g. ",")
+	 * @param <T> the value class
 	 * @return the final string
 	 */
 	public static <T> String join(Collection<T> collection, String delimiter) {
@@ -129,6 +131,7 @@ public class StringUtils {
 	 * @param collection the collection of values
 	 * @param delimiter the delimiter (e.g. ",")
 	 * @param sb the string builder to append onto
+	 * @param <T> the value class
 	 */
 	public static <T> void join(Collection<T> collection, String delimiter, StringBuilder sb) {
 		join(collection, delimiter, sb, new JoinCallback<T>() {
@@ -143,6 +146,7 @@ public class StringUtils {
 	 * @param collection the collection of values
 	 * @param delimiter the delimiter (e.g. ",")
 	 * @param join callback function to call on every element in the collection
+	 * @param <T> the value class
 	 * @return the final string
 	 */
 	public static <T> String join(Collection<T> collection, String delimiter, JoinCallback<T> join) {
@@ -157,6 +161,7 @@ public class StringUtils {
 	 * @param delimiter the delimiter (e.g. ",")
 	 * @param sb the string builder to append onto
 	 * @param join callback function to call on every element in the collection
+	 * @param <T> the value class
 	 */
 	public static <T> void join(Collection<T> collection, String delimiter, StringBuilder sb, JoinCallback<T> join) {
 		boolean first = true;
@@ -175,6 +180,8 @@ public class StringUtils {
 	 * @param map the map
 	 * @param delimiter the delimiter (e.g. ",")
 	 * @param join callback function to call on every element in the collection
+	 * @param <K> the key class
+	 * @param <V> the value class
 	 * @return the final string
 	 */
 	public static <K, V> String join(Map<K, V> map, String delimiter, final JoinMapCallback<K, V> join) {
@@ -188,9 +195,9 @@ public class StringUtils {
 	/**
 	 * Callback interface used with various {@code StringUtils.join()} methods.
 	 * @author Michael Angstadt
-	 * @param <T> the value type
+	 * @param <T> the value class
 	 */
-	public static interface JoinCallback<T> {
+	public interface JoinCallback<T> {
 		void handle(StringBuilder sb, T value);
 	}
 
@@ -201,8 +208,26 @@ public class StringUtils {
 	 * @param <K> the key class
 	 * @param <V> the value class
 	 */
-	public static interface JoinMapCallback<K, V> {
+	public interface JoinMapCallback<K, V> {
 		void handle(StringBuilder sb, K key, V value);
+	}
+
+	/**
+	 * Creates a copy of the given map, converting its keys and values to
+	 * lowercase.
+	 * @param map the map
+	 * @return the copy with lowercase keys and values
+	 */
+	public static Map<String, String> toLowerCase(Map<String, String> map) {
+		Map<String, String> lowerCaseMap = new HashMap<String, String>(map.size());
+		for (Map.Entry<String, String> entry : map.entrySet()) {
+			String key = entry.getKey().toLowerCase();
+			String value = entry.getValue();
+			value = (value == null) ? null : value.toLowerCase();
+
+			lowerCaseMap.put(key, value);
+		}
+		return lowerCaseMap;
 	}
 
 	private StringUtils() {

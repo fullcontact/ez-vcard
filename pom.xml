@@ -3,7 +3,7 @@
 	<groupId>com.googlecode.ez-vcard</groupId>
 	<artifactId>ez-vcard</artifactId>
 	<packaging>bundle</packaging> <!-- "bundle" used for OSGi support -->
-	<version>0.9.15-fc</version>
+	<version>0.9.11-fc16</version>
 	<name>ez-vcard</name>
 	<url>http://github.com/fullcontact/ez-vcard</url>
 	<inceptionYear>2012</inceptionYear>
@@ -47,7 +47,7 @@
 	</scm>
 
 	<properties>
-		<java.version>1.5</java.version>
+		<java.version>1.8</java.version>
 	</properties>
 
 	<dependencies>
@@ -58,12 +58,12 @@
 			<scope>provided</scope>
 		</dependency>
 		<!--
-		Source code of commons-codec has been included in the project to improve Android compatibility.
+		Selected portions of this library's source code have been incorporated into the ez-vcard code base to improve Android compatibility.
 		See: https://groups.google.com/forum/?fromgroups=#!topic/ez-vcard-discuss/w2TK7yetwr8
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
-			<version>1.6</version>
+			<version>1.10</version>
 		</dependency>
 		-->
 		<dependency>
@@ -80,6 +80,18 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-core</artifactId>
 			<version>2.6.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.6.1</version>
+
+			<!--
+			The only classes that refer to objects from jackson-databind are JCardModule, JCardSerializer, and JCardDeserializer, all of which
+			consume external objects from jackson-databind for their functionality, so any project using them will already have its own dependency
+			on jackson-databind.
+			-->
+			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
@@ -105,6 +117,12 @@
 			<version>2.7.2</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+		    <groupId>nl.jqno.equalsverifier</groupId>
+		    <artifactId>equalsverifier</artifactId>
+		    <version>1.7.6</version>
+		    <scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -124,7 +142,8 @@
 			</resource>
 
 			<!--
-			Apparently, the "eclipse:eclipse" goal doesn't like the above <resource> definitions, so use the one below when running this goal
+			For reasons unknown, the "eclipse:eclipse" goal fails with the above <resource> definitions.
+			Uncomment the <resource> block below and comment out the <resource> blocks above when running this goal.
 			<resource>
 				<directory>src/main/resources</directory>
 				<filtering>true</filtering>
@@ -259,7 +278,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>findbugs-maven-plugin</artifactId>
-				<version>2.5.3</version>
+				<version>3.0.3</version>
 			</plugin>
 
 			<!--
@@ -270,7 +289,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-pmd-plugin</artifactId>
-				<version>3.1</version>
+				<version>3.6</version>
 				<configuration>
 					<targetJdk>${java.version}</targetJdk>
 				</configuration>
@@ -351,6 +370,29 @@
 								</goals>
 							</execution>
 						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<!--
+		Disables DocLint, a Java 8 feature that fails the build if it detects errors in the javadocs.
+		See: http://stackoverflow.com/a/22296107/13379
+		-->
+		<profile>
+			<id>doclint-java8-disable</id>
+			<activation>
+				<jdk>[1.8,)</jdk>
+			</activation>
+
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<configuration>
+							<additionalparam>-Xdoclint:none</additionalparam>
+						</configuration>
 					</plugin>
 				</plugins>
 			</build>

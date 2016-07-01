@@ -3,10 +3,11 @@ package ezvcard.io.scribe;
 import java.util.List;
 
 import ezvcard.io.html.HCardElement;
+import ezvcard.parameter.VCardParameters;
 import ezvcard.property.Label;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -49,9 +50,7 @@ public class LabelScribe extends StringPropertyScribe<Label> {
 		Label property = new Label(element.value());
 
 		List<String> types = element.types();
-		for (String type : types) {
-			property.getParameters().addType(type);
-		}
+		property.getParameters().putAll(VCardParameters.TYPE, types);
 
 		return property;
 	}

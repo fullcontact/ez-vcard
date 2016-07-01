@@ -17,7 +17,7 @@ import ezvcard.VCardDataType;
 import ezvcard.parameter.VCardParameters;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -51,12 +51,27 @@ public class JCardRawReader implements Closeable {
 	private JsonParser parser;
 	private boolean eof = false;
 	private JCardDataStreamListener listener;
+	private boolean strict = false;
 
 	/**
 	 * @param reader the reader to wrap
 	 */
 	public JCardRawReader(Reader reader) {
 		this.reader = reader;
+	}
+
+	/**
+	 * @param parser the parser to read from
+	 * @param strict true if the parser's current token is expected to be
+	 * positioned at the start of a jCard, false if not. If this is true, and
+	 * the parser is not positioned at the beginning of a jCard, a
+	 * {@link JCardParseException} will be thrown. If this if false, the parser
+	 * will consume input until it reaches the beginning of a jCard.
+	 */
+	public JCardRawReader(JsonParser parser, boolean strict) {
+		reader = null;
+		this.parser = parser;
+		this.strict = strict;
 	}
 
 	/**
@@ -73,7 +88,7 @@ public class JCardRawReader implements Closeable {
 	 * @throws JCardParseException if the jCard syntax is incorrect (the JSON
 	 * syntax may be valid, but it is not in the correct jCard format).
 	 * @throws JsonParseException if the JSON syntax is incorrect
-	 * @throws IOException if there is a problem reading from the data stream
+	 * @throws IOException if there is a problem reading from the input stream
 	 */
 	public void readNext(JCardDataStreamListener listener) throws IOException {
 		if (parser == null) {
@@ -86,14 +101,30 @@ public class JCardRawReader implements Closeable {
 		this.listener = listener;
 
 		//find the next vCard object
-		JsonToken prev = null;
+		JsonToken prev = parser.getCurrentToken();
 		JsonToken cur;
 		while ((cur = parser.nextToken()) != null) {
 			if (prev == JsonToken.START_ARRAY && cur == JsonToken.VALUE_STRING && "vcard".equals(parser.getValueAsString())) {
+				//found
 				break;
 			}
+
+			if (strict) {
+				//the parser was expecting the jCard to be there
+				if (prev != JsonToken.START_ARRAY) {
+					throw new JCardParseException(JsonToken.START_ARRAY, prev);
+				}
+
+				if (cur != JsonToken.VALUE_STRING) {
+					throw new JCardParseException(JsonToken.VALUE_STRING, cur);
+				}
+
+				throw new JCardParseException("Invalid value for first token: expected \"vcard\" , was \"" + parser.getValueAsString() + "\"", JsonToken.VALUE_STRING, cur);
+			}
+
 			prev = cur;
 		}
+
 		if (cur == null) {
 			//EOF
 			eof = true;
@@ -102,6 +133,8 @@ public class JCardRawReader implements Closeable {
 
 		listener.beginVCard();
 		parseProperties();
+
+		check(JsonToken.END_ARRAY, parser.nextToken());
 	}
 
 	private void parseProperties() throws IOException {
@@ -250,7 +283,7 @@ public class JCardRawReader implements Closeable {
 	 * Handles the vCard data as it is read off the data stream.
 	 * @author Michael Angstadt
 	 */
-	public static interface JCardDataStreamListener {
+	public interface JCardDataStreamListener {
 		/**
 		 * Called when a vCard has been found in the stream.
 		 */
@@ -271,6 +304,11 @@ public class JCardRawReader implements Closeable {
 	 * Closes the underlying {@link Reader} object.
 	 */
 	public void close() throws IOException {
-		reader.close();
+		if (parser != null) {
+			parser.close();
+		}
+		if (reader != null) {
+			reader.close();
+		}
 	}
 }

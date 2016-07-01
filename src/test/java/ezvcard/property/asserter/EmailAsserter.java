@@ -1,7 +1,6 @@
 package ezvcard.property.asserter;
 
-import static ezvcard.util.TestUtils.assertSetEquals;
-import static org.junit.Assert.assertEquals;
+import static java.util.Arrays.asList;
 
 import java.util.List;
 
@@ -9,7 +8,7 @@ import ezvcard.parameter.EmailType;
 import ezvcard.property.Email;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -40,33 +39,23 @@ import ezvcard.property.Email;
 /**
  * @author Michael Angstadt
  */
-public class EmailAsserter extends PropertyAsserter<EmailAsserter, Email> {
-	private EmailType[] types;
-	private String value;
-
-	public EmailAsserter(List<Email> emails) {
-		super(emails);
+public class EmailAsserter extends PropertyImplAsserter<EmailAsserter, Email> {
+	public EmailAsserter(List<Email> properties, VCardAsserter asserter) {
+		super(properties, asserter);
 	}
 
 	public EmailAsserter types(EmailType... types) {
-		this.types = types;
+		expected.getTypes().addAll(asList(types));
 		return this_;
 	}
 
 	public EmailAsserter value(String value) {
-		this.value = value;
+		expected.setValue(value);
 		return this_;
 	}
 
 	@Override
-	protected void _run(Email property) {
-		assertEquals(value, property.getValue());
-		assertSetEquals(property.getTypes(), types);
-	}
-
-	@Override
-	protected void _reset() {
-		types = new EmailType[0];
-		value = null;
+	protected Email _newInstance() {
+		return new Email((String) null);
 	}
 }

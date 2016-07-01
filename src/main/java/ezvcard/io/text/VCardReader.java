@@ -36,7 +36,7 @@ import ezvcard.util.org.apache.commons.codec.DecoderException;
 import ezvcard.util.org.apache.commons.codec.net.QuotedPrintableCodec;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -70,6 +70,7 @@ import ezvcard.util.org.apache.commons.codec.net.QuotedPrintableCodec;
  * </p>
  * <p>
  * <b>Example:</b>
+ * </p>
  * 
  * <pre class="brush:java">
  * File file = new File("vcards.vcf");
@@ -84,8 +85,6 @@ import ezvcard.util.org.apache.commons.codec.net.QuotedPrintableCodec;
  *   if (reader != null) reader.close();
  * }
  * </pre>
- * 
- * </p>
  * @author Michael Angstadt
  * @see <a href="http://www.imc.org/pdi/vcard-21.rtf">vCard 2.1</a>
  * @see <a href="http://tools.ietf.org/html/rfc2426">RFC 2426 (3.0)</a>
@@ -184,6 +183,18 @@ public class VCardReader extends StreamReader {
 		defaultQuotedPrintableCharset = charset;
 	}
 
+	/**
+	 * Defines how the reader should parse a vCard when it encounters a
+	 * non-standard version number. By default, a warning is logged and the
+	 * version property is ignored.
+	 * @param version the version number
+	 * @param parseAccordingTo the parsing rules the reader should use when a
+	 * vCard with the given version number is encountered
+	 */
+	public void setVersionAlias(String version, VCardVersion parseAccordingTo) {
+		reader.setVersionAlias(version, parseAccordingTo);
+	}
+
 	@Override
 	protected VCard _readNext() throws IOException {
 		VCard root = null;
@@ -197,7 +208,7 @@ public class VCardReader extends StreamReader {
 				line = reader.readLine();
 			} catch (VCardParseException e) {
 				if (!vcardStack.isEmpty()) {
-					warnings.add(e.getLineNumber(), null, 27, e.getLine());
+					warnings.add(e.getLineNumber(), null, 27, e.getMessage(), e.getLine());
 				}
 				continue;
 			}
@@ -403,16 +414,25 @@ public class VCardReader extends StreamReader {
 	 * @param parameters the parameters
 	 */
 	private void processQuotedMultivaluedTypeParams(VCardParameters parameters) {
-		for (String typeParameter : parameters.getTypes()) {
-			if (!typeParameter.contains(",")) {
-				continue;
-			}
-
-			parameters.removeTypes();
-			for (String splitValue : typeParameter.split(",")) {
-				parameters.addType(splitValue);
+		List<String> types = parameters.getTypes();
+		String valueWithComma = null;
+		for (String value : types) {
+			if (value.indexOf(',') >= 0) {
+				valueWithComma = value;
+				break;
 			}
 		}
+		if (valueWithComma == null) {
+			return;
+		}
+
+		types.clear();
+		int prev = -1, cur;
+		while ((cur = valueWithComma.indexOf(',', prev + 1)) >= 0) {
+			types.add(valueWithComma.substring(prev + 1, cur));
+			prev = cur;
+		}
+		types.add(valueWithComma.substring(prev + 1));
 	}
 
 	/**

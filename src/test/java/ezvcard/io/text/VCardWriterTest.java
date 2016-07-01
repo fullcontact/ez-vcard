@@ -44,7 +44,7 @@ import ezvcard.util.TelUri;
 import ezvcard.util.UtcOffset;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -84,9 +84,10 @@ public class VCardWriterTest {
 	public void generalStructure() throws Throwable {
 		VCard vcard = new VCard();
 		vcard.setFormattedName("John Doe");
+		vcard.setProductId("ez-vcard");
 
 		StringWriter sw = new StringWriter();
-		VCardWriter vcw = new VCardWriter(sw, VCardVersion.V2_1);
+		VCardWriter vcw = new VCardWriter(sw, VCardVersion.V4_0);
 		vcw.setAddProdId(false);
 		vcw.write(vcard);
 		String actual = sw.toString();
@@ -94,7 +95,8 @@ public class VCardWriterTest {
 		//@formatter:off
 		String expected =
 		"BEGIN:VCARD\r\n" +
-			"VERSION:2.1\r\n" +
+			"VERSION:4.0\r\n" +
+			"PRODID:ez-vcard\r\n" +
 			"FN:John Doe\r\n" +
 		"END:VCARD\r\n";
 		//@formatter:on
@@ -357,7 +359,7 @@ public class VCardWriterTest {
 			}
 
 			@Override
-			protected String _writeText(T property, VCardVersion version) {
+			protected String _writeText(T property, WriteContext context) {
 				return "value";
 			}
 
@@ -412,7 +414,111 @@ public class VCardWriterTest {
 	}
 
 	@Test
-	public void outlookCompatibility() throws Throwable {
+	public void setIncludeTrailingSemicolons() throws Throwable {
+		VCard vcard = new VCard();
+		StructuredName n = new StructuredName();
+		n.setFamily("Family");
+		vcard.setStructuredName(n);
+
+		{
+			StringWriter sw = new StringWriter();
+			VCardWriter writer = new VCardWriter(sw, VCardVersion.V2_1);
+			writer.setAddProdId(false);
+
+			writer.write(vcard);
+			writer.setIncludeTrailingSemicolons(true);
+			writer.write(vcard);
+			writer.setIncludeTrailingSemicolons(false);
+			writer.write(vcard);
+
+			String actual = sw.toString();
+
+			//@formatter:off
+			String expected =
+			"BEGIN:VCARD\r\n" +
+				"VERSION:2.1\r\n" +
+				"N:Family\r\n" +
+			"END:VCARD\r\n" +
+			"BEGIN:VCARD\r\n" +
+				"VERSION:2.1\r\n" +
+				"N:Family;;;;\r\n" +
+			"END:VCARD\r\n" +
+			"BEGIN:VCARD\r\n" +
+				"VERSION:2.1\r\n" +
+				"N:Family\r\n" +
+			"END:VCARD\r\n";
+			//@formatter:on
+
+			assertEquals(expected, actual);
+		}
+
+		{
+			StringWriter sw = new StringWriter();
+			VCardWriter writer = new VCardWriter(sw, VCardVersion.V3_0);
+			writer.setAddProdId(false);
+
+			writer.write(vcard);
+			writer.setIncludeTrailingSemicolons(true);
+			writer.write(vcard);
+			writer.setIncludeTrailingSemicolons(false);
+			writer.write(vcard);
+
+			String actual = sw.toString();
+
+			//@formatter:off
+			String expected =
+			"BEGIN:VCARD\r\n" +
+				"VERSION:3.0\r\n" +
+				"N:Family\r\n" +
+			"END:VCARD\r\n" +
+			"BEGIN:VCARD\r\n" +
+				"VERSION:3.0\r\n" +
+				"N:Family;;;;\r\n" +
+			"END:VCARD\r\n" +
+			"BEGIN:VCARD\r\n" +
+				"VERSION:3.0\r\n" +
+				"N:Family\r\n" +
+			"END:VCARD\r\n";
+			//@formatter:on
+
+			assertEquals(expected, actual);
+		}
+
+		{
+			StringWriter sw = new StringWriter();
+			VCardWriter writer = new VCardWriter(sw, VCardVersion.V4_0);
+			writer.setAddProdId(false);
+
+			writer.write(vcard);
+			writer.setIncludeTrailingSemicolons(true);
+			writer.write(vcard);
+			writer.setIncludeTrailingSemicolons(false);
+			writer.write(vcard);
+
+			String actual = sw.toString();
+
+			//@formatter:off
+			String expected =
+			"BEGIN:VCARD\r\n" +
+				"VERSION:4.0\r\n" +
+				"N:Family;;;;\r\n" +
+			"END:VCARD\r\n" +
+			"BEGIN:VCARD\r\n" +
+				"VERSION:4.0\r\n" +
+				"N:Family;;;;\r\n" +
+			"END:VCARD\r\n" +
+			"BEGIN:VCARD\r\n" +
+				"VERSION:4.0\r\n" +
+				"N:Family\r\n" +
+			"END:VCARD\r\n";
+			//@formatter:on
+
+			assertEquals(expected, actual);
+		}
+	}
+
+	@Test
+	public void setTargetApplication_outlook() throws Throwable {
 		VCard vcard = new VCard();
 		byte data[] = "foobar".getBytes();
 		vcard.addKey(new Key(data, KeyType.X509));
@@ -425,7 +531,7 @@ public class VCardWriterTest {
 			VCardWriter writer = new VCardWriter(sw, VCardVersion.V2_1);
 			writer.setAddProdId(false);
 			writer.write(vcard);
-			writer.setOutlookCompatibility(true);
+			writer.setTargetApplication(TargetApplication.OUTLOOK);
 			writer.write(vcard);
 
 			String actual = sw.toString();
@@ -434,23 +540,23 @@ public class VCardWriterTest {
 			String expected =
 			"BEGIN:VCARD\r\n" +
 				"VERSION:2.1\r\n" +
-				"KEY;ENCODING=base64;X509:Zm9vYmFy\r\n" +
-				"PHOTO;ENCODING=base64;JPEG:Zm9vYmFy\r\n" +
+				"KEY;ENCODING=BASE64;X509:Zm9vYmFy\r\n" +
+				"PHOTO;ENCODING=BASE64;JPEG:Zm9vYmFy\r\n" +
 				"LOGO;PNG;VALUE=url:http://www.company.com/logo.png\r\n" +
 				"NOTE:note\r\n" +
 			"END:VCARD\r\n" +
 			"BEGIN:VCARD\r\n" +
 				"VERSION:2.1\r\n" +
-				"KEY;ENCODING=base64;X509:Zm9vYmFy\r\n" +
+				"KEY;ENCODING=BASE64;X509:Zm9vYmFy\r\n" +
 				"\r\n" +
-				"PHOTO;ENCODING=base64;JPEG:Zm9vYmFy\r\n" +
+				"PHOTO;ENCODING=BASE64;JPEG:Zm9vYmFy\r\n" +
 				"\r\n" +
 				"LOGO;PNG;VALUE=url:http://www.company.com/logo.png\r\n" +
 				"NOTE:note\r\n" +
 			"END:VCARD\r\n";
 			//@formatter:on
 
-			assertEquals(actual, expected);
+			assertEquals(expected, actual);
 		}
 
 		{
@@ -458,7 +564,7 @@ public class VCardWriterTest {
 			VCardWriter writer = new VCardWriter(sw, VCardVersion.V3_0);
 			writer.setAddProdId(false);
 			writer.write(vcard);
-			writer.setOutlookCompatibility(true);
+			writer.setTargetApplication(TargetApplication.OUTLOOK);
 			writer.write(vcard);
 
 			String actual = sw.toString();
@@ -483,7 +589,7 @@ public class VCardWriterTest {
 			"END:VCARD\r\n";
 			//@formatter:on
 
-			assertEquals(actual, expected);
+			assertEquals(expected, actual);
 		}
 
 		{
@@ -491,7 +597,7 @@ public class VCardWriterTest {
 			VCardWriter writer = new VCardWriter(sw, VCardVersion.V4_0);
 			writer.setAddProdId(false);
 			writer.write(vcard);
-			writer.setOutlookCompatibility(true);
+			writer.setTargetApplication(TargetApplication.OUTLOOK);
 			writer.write(vcard);
 
 			String actual = sw.toString();
@@ -514,7 +620,7 @@ public class VCardWriterTest {
 			"END:VCARD\r\n";
 			//@formatter:on
 
-			assertEquals(actual, expected);
+			assertEquals(expected, actual);
 		}
 	}
 
@@ -527,8 +633,8 @@ public class VCardWriterTest {
 		StructuredName n = new StructuredName();
 		n.setFamily("Perreault");
 		n.setGiven("Simon");
-		n.addSuffix("ing. jr");
-		n.addSuffix("M.Sc.");
+		n.getSuffixes().add("ing. jr");
+		n.getSuffixes().add("M.Sc.");
 		vcard.setStructuredName(n);
 
 		Birthday bday = new Birthday(PartialDate.builder().month(2).date(3).build());
@@ -551,22 +657,22 @@ public class VCardWriterTest {
 		adr.setRegion("QC");
 		adr.setPostalCode("G1V 2M2");
 		adr.setCountry("Canada");
-		adr.addType(AddressType.WORK);
+		adr.getTypes().add(AddressType.WORK);
 		vcard.addAddress(adr);
 
 		TelUri telUri = new TelUri.Builder("+1-418-656-9254").extension("102").build();
 		Telephone tel = new Telephone(telUri);
 		tel.setPref(1);
-		tel.addType(TelephoneType.WORK);
-		tel.addType(TelephoneType.VOICE);
+		tel.getTypes().add(TelephoneType.WORK);
+		tel.getTypes().add(TelephoneType.VOICE);
 		vcard.addTelephoneNumber(tel);
 
 		tel = new Telephone(new TelUri.Builder("+1-418-262-6501").build());
-		tel.addType(TelephoneType.WORK);
-		tel.addType(TelephoneType.VOICE);
-		tel.addType(TelephoneType.CELL);
-		tel.addType(TelephoneType.VIDEO);
-		tel.addType(TelephoneType.TEXT);
+		tel.getTypes().add(TelephoneType.WORK);
+		tel.getTypes().add(TelephoneType.VOICE);
+		tel.getTypes().add(TelephoneType.CELL);
+		tel.getTypes().add(TelephoneType.VIDEO);
+		tel.getTypes().add(TelephoneType.TEXT);
 		vcard.addTelephoneNumber(tel);
 
 		vcard.addEmail("simon.perreault@viagenie.ca", EmailType.WORK);
@@ -639,9 +745,9 @@ public class VCardWriterTest {
 			adr.setRegion("NC");
 			adr.setPostalCode("27613-3502");
 			adr.setCountry("U.S.A.");
-			adr.addType(AddressType.WORK);
-			adr.addType(AddressType.POSTAL);
-			adr.addType(AddressType.PARCEL);
+			adr.getTypes().add(AddressType.WORK);
+			adr.getTypes().add(AddressType.POSTAL);
+			adr.getTypes().add(AddressType.PARCEL);
 			vcard.addAddress(adr);
 
 			vcard.addTelephoneNumber("+1-919-676-9515", TelephoneType.VOICE, TelephoneType.MSG, TelephoneType.WORK);
@@ -670,7 +776,7 @@ public class VCardWriterTest {
 			adr.setRegion("CA");
 			adr.setPostalCode("94043");
 			adr.setCountry("U.S.A.");
-			adr.addType(AddressType.WORK);
+			adr.getTypes().add(AddressType.WORK);
 			vcard.addAddress(adr);
 
 			vcard.addTelephoneNumber("+1-415-937-3419", TelephoneType.VOICE, TelephoneType.MSG, TelephoneType.WORK);

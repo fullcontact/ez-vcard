@@ -6,8 +6,10 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import ezvcard.Messages;
+
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -43,39 +45,41 @@ import java.util.regex.Pattern;
  * Example tel URI: {@code tel:+1-212-555-0101}
  * </p>
  * <p>
- * This class is immutable. Use the {@link Builder} object to construct a new
+ * This class is immutable. Use the {@link Builder} class to construct a new
  * instance, or the {@link #parse} method to parse a tel URI string.
  * </p>
- *
  * <p>
  * <b>Examples:</b>
+ * </p>
  *
  * <pre class="brush:java">
  * TelUri uri = new TelUri.Builder(&quot;+1-212-555-0101&quot;).extension(&quot;123&quot;).build();
  * TelUri uri = TelUri.parse(&quot;tel:+1-212-555-0101;ext=123&quot;);
- * TelUri copy = new TelUri.Builder(original).extension(&quot;124&quot;).build();
+ * TelUri copy = new TelUri.Builder(uri).extension(&quot;124&quot;).build();
  * </pre>
  * @see <a href="http://tools.ietf.org/html/rfc3966">RFC 3966</a>
  * @author Michael Angstadt
  */
 public final class TelUri {
 	/**
-	 * The characters which are allowed to exist un-encoded inside of a
-	 * parameter value.
+	 * The characters which are allowed to exist unencoded inside of a parameter
+	 * value.
 	 */
-	private static final boolean validParamValueChars[] = new boolean[128];
+	private static final boolean validParameterValueCharacters[] = new boolean[128];
 	static {
 		for (int i = '0'; i <= '9'; i++) {
-			validParamValueChars[i] = true;
+			validParameterValueCharacters[i] = true;
 		}
 		for (int i = 'A'; i <= 'Z'; i++) {
-			validParamValueChars[i] = true;
+			validParameterValueCharacters[i] = true;
 		}
 		for (int i = 'a'; i <= 'z'; i++) {
-			validParamValueChars[i] = true;
+			validParameterValueCharacters[i] = true;
 		}
-		for (char c : "!$&'()*+-.:[]_~/".toCharArray()) {
-			validParamValueChars[c] = true;
+		String s = "!$&'()*+-.:[]_~/";
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			validParameterValueCharacters[c] = true;
 		}
 	}
 
@@ -109,48 +113,81 @@ public final class TelUri {
 
 	/**
 	 * Parses a tel URI.
-	 * @param uri the URI
-	 * @return the parsed tel URI, or null if we're not looking at a URI.
+	 * @param uri the URI (e.g. "tel:+1-610-555-1234;ext=101")
+	 * @return the parsed tel URI
+	 * @throws IllegalArgumentException if the string is not a valid tel URI
 	 */
 	public static TelUri parse(String uri) {
-		if (uri.length() < 4 || uri.charAt(3) != ':' ||
-			!uri.substring(0, 3).toLowerCase().equals("tel")) {
-			// could throw IAE instead, but that gets expensive when parsing is done a lot.
-			return null;
-		}
+		//URI format: tel:number;prop1=value1;prop2=value2
 
-		// uri:number;stuff=things;more=props
-		String[] parts = uri.substring(4).split(";");
+		String scheme = "tel:";
+		if (uri.length() < scheme.length() || !uri.substring(0, scheme.length()).equalsIgnoreCase(scheme)) {
+			//not a tel URI
+			throw Messages.INSTANCE.getIllegalArgumentException(18, uri);
+		}
 
 		Builder builder = new Builder();
-		builder.number = parts[0];
-		if (parts.length > 1) {
-			for (int i = 1; i < parts.length; i++) {
-				String param = parts[i];
-				String paramSplit[] = param.split("=", 2);
-				String paramName = paramSplit[0];
-				String paramValue = paramSplit.length > 1 ? decodeParamValue(paramSplit[1]) : "";
+		ClearableStringBuilder buffer = new ClearableStringBuilder();
+		String paramName = null;
+		for (int i = scheme.length(); i < uri.length(); i++) {
+			char c = uri.charAt(i);
 
-				if (PARAM_EXTENSION.equalsIgnoreCase(paramName)) {
-					builder.extension = paramValue;
-					continue;
-				}
-
-				if (PARAM_ISDN_SUBADDRESS.equalsIgnoreCase(paramName)) {
-					builder.isdnSubaddress = paramValue;
-					continue;
-				}
-
-				if (PARAM_PHONE_CONTEXT.equalsIgnoreCase(paramName)) {
-					builder.phoneContext = paramValue;
-					continue;
-				}
-
-				builder.parameters.put(paramName, paramValue);
+			if (c == '=' && builder.number != null && paramName == null) {
+				paramName = buffer.getAndClear();
+				continue;
 			}
+
+			if (c == ';') {
+				handleEndOfParameter(buffer, paramName, builder);
+				paramName = null;
+				continue;
+			}
+
+			buffer.append(c);
 		}
 
+		handleEndOfParameter(buffer, paramName, builder);
+
 		return builder.build();
+	}
+
+	private static void addParameter(String name, String value, Builder builder) {
+		value = decodeParameterValue(value);
+
+		if (PARAM_EXTENSION.equalsIgnoreCase(name)) {
+			builder.extension = value;
+			return;
+		}
+
+		if (PARAM_ISDN_SUBADDRESS.equalsIgnoreCase(name)) {
+			builder.isdnSubaddress = value;
+			return;
+		}
+
+		if (PARAM_PHONE_CONTEXT.equalsIgnoreCase(name)) {
+			builder.phoneContext = value;
+			return;
+		}
+
+		builder.parameters.put(name, value);
+	}
+
+	private static void handleEndOfParameter(ClearableStringBuilder buffer, String paramName, Builder builder) {
+		String s = buffer.getAndClear();
+
+		if (builder.number == null) {
+			builder.number = s;
+			return;
+		}
+
+		if (paramName == null) {
+			if (s.length() > 0) {
+				addParameter(s, "", builder);
+			}
+			return;
+		}
+
+		addParameter(paramName, s, builder);
 	}
 
 	/**
@@ -238,18 +275,18 @@ public final class TelUri {
 	 * @param sb the string to write to
 	 */
 	private static void writeParameter(String name, String value, StringBuilder sb) {
-		sb.append(';').append(name).append('=').append(encodeParamValue(value));
+		sb.append(';').append(name).append('=').append(encodeParameterValue(value));
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((extension == null) ? 0 : extension.hashCode());
-		result = prime * result + ((isdnSubaddress == null) ? 0 : isdnSubaddress.hashCode());
-		result = prime * result + ((number == null) ? 0 : number.hashCode());
-		result = prime * result + ((parameters == null) ? 0 : parameters.hashCode());
-		result = prime * result + ((phoneContext == null) ? 0 : phoneContext.hashCode());
+		result = prime * result + ((extension == null) ? 0 : extension.toLowerCase().hashCode());
+		result = prime * result + ((isdnSubaddress == null) ? 0 : isdnSubaddress.toLowerCase().hashCode());
+		result = prime * result + ((number == null) ? 0 : number.toLowerCase().hashCode());
+		result = prime * result + ((parameters == null) ? 0 : StringUtils.toLowerCase(parameters).hashCode());
+		result = prime * result + ((phoneContext == null) ? 0 : phoneContext.toLowerCase().hashCode());
 		return result;
 	}
 
@@ -261,40 +298,27 @@ public final class TelUri {
 		TelUri other = (TelUri) obj;
 		if (extension == null) {
 			if (other.extension != null) return false;
-		} else if (!extension.equals(other.extension)) return false;
+		} else if (!extension.equalsIgnoreCase(other.extension)) return false;
 		if (isdnSubaddress == null) {
 			if (other.isdnSubaddress != null) return false;
-		} else if (!isdnSubaddress.equals(other.isdnSubaddress)) return false;
+		} else if (!isdnSubaddress.equalsIgnoreCase(other.isdnSubaddress)) return false;
 		if (number == null) {
 			if (other.number != null) return false;
-		} else if (!number.equals(other.number)) return false;
+		} else if (!number.equalsIgnoreCase(other.number)) return false;
 		if (parameters == null) {
 			if (other.parameters != null) return false;
-		} else if (!parameters.equals(other.parameters)) return false;
+		} else {
+			if (other.parameters == null) return false;
+			if (parameters.size() != other.parameters.size()) return false;
+
+			Map<String, String> parametersLower = StringUtils.toLowerCase(parameters);
+			Map<String, String> otherParametersLower = StringUtils.toLowerCase(other.parameters);
+			if (!parametersLower.equals(otherParametersLower)) return false;
+		}
 		if (phoneContext == null) {
 			if (other.phoneContext != null) return false;
-		} else if (!phoneContext.equals(other.phoneContext)) return false;
+		} else if (!phoneContext.equalsIgnoreCase(other.phoneContext)) return false;
 		return true;
-	}
-
-	/**
-	 * Determines if a given string can be used as a parameter name.
-	 * @param text the parameter name
-	 * @return true if it contains all valid characters, false if not
-	 * @see "RFC 3966 p.5 ('pname' definition)"
-	 */
-	private static boolean isParameterName(String text) {
-		return labelTextPattern.matcher(text).matches();
-	}
-
-	/**
-	 * Determines if a given string is a phone digit.
-	 * @param text the string
-	 * @return true if it's a phone digit, false if not
-	 * @see "RFC 3966 p.5 ('phonedigit' definition)"
-	 */
-	private static boolean isPhoneDigit(String text) {
-		return text.matches("[-0-9.()]+");
 	}
 
 	/**
@@ -302,17 +326,18 @@ public final class TelUri {
 	 * @param value the string to encode
 	 * @return the encoded value
 	 */
-	private static String encodeParamValue(String value) {
+	private static String encodeParameterValue(String value) {
 		StringBuilder sb = null;
 		for (int i = 0; i < value.length(); i++) {
 			char c = value.charAt(i);
-			if (c < validParamValueChars.length && validParamValueChars[c]) {
+			if (c < validParameterValueCharacters.length && validParameterValueCharacters[c]) {
 				if (sb != null) {
 					sb.append(c);
 				}
 			} else {
 				if (sb == null) {
-					sb = new StringBuilder(value.substring(0, i));
+					sb = new StringBuilder(value.length() * 2);
+					sb.append(value.substring(0, i));
 				}
 				String hex = Integer.toString(c, 16);
 				sb.append('%').append(hex);
@@ -326,13 +351,23 @@ public final class TelUri {
 	 * @param value the parameter value
 	 * @return the decoded value
 	 */
-	private static String decodeParamValue(String value) {
+	private static String decodeParameterValue(String value) {
 		Matcher m = hexPattern.matcher(value);
-		StringBuffer sb = new StringBuffer();
+		StringBuffer sb = null;
+
 		while (m.find()) {
+			if (sb == null) {
+				sb = new StringBuffer(value.length());
+			}
+
 			int hex = Integer.parseInt(m.group(1), 16);
-			m.appendReplacement(sb, "" + (char) hex);
+			m.appendReplacement(sb, Character.toString((char) hex));
 		}
+
+		if (sb == null) {
+			return value;
+		}
+
 		m.appendTail(sb);
 		return sb.toString();
 	}
@@ -343,9 +378,13 @@ public final class TelUri {
 		private String isdnSubaddress;
 		private String phoneContext;
 		private Map<String, String> parameters;
+		private CharacterBitSet validParamNameChars = new CharacterBitSet("a-zA-Z0-9-");
 
 		private Builder() {
-			//TreeMap is used because parameters should appear in lexicographical (alphabetical) order (see RFC 3966 p.5)
+			/*
+			 * TreeMap is used because parameters should appear in
+			 * lexicographical (alphabetical) order (see RFC 3966 p.5)
+			 */
 			parameters = new TreeMap<String, String>();
 		}
 
@@ -355,20 +394,20 @@ public final class TelUri {
 		 * </p>
 		 * <p>
 		 * Global telephone numbers must:
+		 * </p>
 		 * <ol>
 		 * <li>Start with "+"</li>
 		 * <li>Contain at least 1 digit</li>
 		 * <li>Limit themselves to the following characters:
 		 * <ul>
 		 * <li>{@code 0-9} (digits)</li>
-		 * <li>{@code -} (hypen)</li>
+		 * <li>{@code -} (hyphen)</li>
 		 * <li>{@code .} (period)</li>
-		 * <li>{@code (} (opening paraenthesis)</li>
-		 * <li>{@code )} (closing paraenthesis)</li>
+		 * <li>{@code (} (opening parenthesis)</li>
+		 * <li>{@code )} (closing parenthesis)</li>
 		 * </ul>
 		 * </li>
 		 * </ol>
-		 * </p>
 		 * @param globalNumber the telephone number (e.g. "+1-212-555-0101")
 		 * @throws IllegalArgumentException if the given telephone number does
 		 * not adhere to the above rules
@@ -385,6 +424,7 @@ public final class TelUri {
 		 * </p>
 		 * <p>
 		 * Local telephone numbers must:
+		 * </p>
 		 * <ol>
 		 * <li>Contain at least 1 of the following characters:
 		 * <ul>
@@ -396,16 +436,15 @@ public final class TelUri {
 		 * <li>Limit themselves to the following characters:
 		 * <ul>
 		 * <li>{@code 0-9} (digits)</li>
-		 * <li>{@code -} (hypen)</li>
+		 * <li>{@code -} (hyphen)</li>
 		 * <li>{@code .} (period)</li>
-		 * <li>{@code (} (opening paraenthesis)</li>
-		 * <li>{@code )} (closing paraenthesis)</li>
+		 * <li>{@code (} (opening parenthesis)</li>
+		 * <li>{@code )} (closing parenthesis)</li>
 		 * <li>{@code *} (asterisk)</li>
 		 * <li>{@code #} (hash)</li>
 		 * </ul>
 		 * </li>
 		 * </ol>
-		 * </p>
 		 * @param localNumber the telephone number (e.g. "7042")
 		 * @param phoneContext the context under which the local number is valid
 		 * (e.g. "example.com")
@@ -435,34 +474,38 @@ public final class TelUri {
 		 * </p>
 		 * <p>
 		 * Global telephone numbers must:
+		 * </p>
 		 * <ol>
 		 * <li>Start with "+"</li>
 		 * <li>Contain at least 1 digit</li>
 		 * <li>Limit themselves to the following characters:
 		 * <ul>
 		 * <li>{@code 0-9} (digits)</li>
-		 * <li>{@code -} (hypen)</li>
+		 * <li>{@code -} (hyphen)</li>
 		 * <li>{@code .} (period)</li>
-		 * <li>{@code (} (opening paraenthesis)</li>
-		 * <li>{@code )} (closing paraenthesis)</li>
+		 * <li>{@code (} (opening parenthesis)</li>
+		 * <li>{@code )} (closing parenthesis)</li>
 		 * </ul>
 		 * </li>
 		 * </ol>
-		 * </p>
 		 * @param globalNumber the telephone number (e.g. "+1-212-555-0101")
 		 * @return this
 		 * @throws IllegalArgumentException if the given telephone number does
 		 * not adhere to the above rules
 		 */
 		public Builder globalNumber(String globalNumber) {
-			if (!globalNumber.matches(".*?[0-9].*")) {
-				throw new IllegalArgumentException("Global number must contain at least one digit.");
-			}
 			if (!globalNumber.startsWith("+")) {
-				throw new IllegalArgumentException("Global number must start with \"+\".");
+				throw Messages.INSTANCE.getIllegalArgumentException(26);
 			}
-			if (!globalNumber.matches("\\+[-0-9.()]*")) {
-				throw new IllegalArgumentException("Global number contains invalid characters.");
+
+			CharacterBitSet validChars = new CharacterBitSet("0-9.()-");
+			if (!validChars.containsOnly(globalNumber, 1)) {
+				throw Messages.INSTANCE.getIllegalArgumentException(27);
+			}
+
+			CharacterBitSet requiredChars = new CharacterBitSet("0-9");
+			if (!requiredChars.containsAny(globalNumber, 1)) {
+				throw Messages.INSTANCE.getIllegalArgumentException(25);
 			}
 
 			number = globalNumber;
@@ -477,6 +520,7 @@ public final class TelUri {
 		 * </p>
 		 * <p>
 		 * Local telephone numbers must:
+		 * </p>
 		 * <ol>
 		 * <li>Contain at least 1 of the following characters:
 		 * <ul>
@@ -488,16 +532,15 @@ public final class TelUri {
 		 * <li>Limit themselves to the following characters:
 		 * <ul>
 		 * <li>{@code 0-9} (digits)</li>
-		 * <li>{@code -} (hypen)</li>
+		 * <li>{@code -} (hyphen)</li>
 		 * <li>{@code .} (period)</li>
-		 * <li>{@code (} (opening paraenthesis)</li>
-		 * <li>{@code )} (closing paraenthesis)</li>
+		 * <li>{@code (} (opening parenthesis)</li>
+		 * <li>{@code )} (closing parenthesis)</li>
 		 * <li>{@code *} (asterisk)</li>
 		 * <li>{@code #} (hash)</li>
 		 * </ul>
 		 * </li>
 		 * </ol>
-		 * </p>
 		 * @param localNumber the telephone number (e.g. "7042")
 		 * @param phoneContext the context under which the local number is valid
 		 * (e.g. "example.com")
@@ -506,8 +549,14 @@ public final class TelUri {
 		 * not adhere to the above rules
 		 */
 		public Builder localNumber(String localNumber, String phoneContext) {
-			if (!localNumber.matches(".*?[0-9*#].*") || !localNumber.matches("[0-9\\-.()*#]+")) {
-				throw new IllegalArgumentException("Local number contains invalid characters.");
+			CharacterBitSet validChars = new CharacterBitSet("0-9.()*#-");
+			if (!validChars.containsOnly(localNumber)) {
+				throw Messages.INSTANCE.getIllegalArgumentException(28);
+			}
+
+			CharacterBitSet requiredChars = new CharacterBitSet("0-9*#");
+			if (!requiredChars.containsAny(localNumber)) {
+				throw Messages.INSTANCE.getIllegalArgumentException(28);
 			}
 
 			number = localNumber;
@@ -523,8 +572,11 @@ public final class TelUri {
 		 * other than the following: digits, hypens, parenthesis, periods
 		 */
 		public Builder extension(String extension) {
-			if (extension != null && !isPhoneDigit(extension)) {
-				throw new IllegalArgumentException("Extension contains invalid characters.");
+			if (extension != null) {
+				CharacterBitSet validChars = new CharacterBitSet("0-9.()-");
+				if (!validChars.containsOnly(extension)) {
+					throw Messages.INSTANCE.getIllegalArgumentException(29);
+				}
 			}
 
 			this.extension = extension;
@@ -551,8 +603,8 @@ public final class TelUri {
 		 * invalid characters
 		 */
 		public Builder parameter(String name, String value) {
-			if (!isParameterName(name)) {
-				throw new IllegalArgumentException("Parameter names can only contain letters, numbers, and hyphens.");
+			if (!validParamNameChars.containsOnly(name)) {
+				throw Messages.INSTANCE.getIllegalArgumentException(23);
 			}
 
 			if (value == null) {

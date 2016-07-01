@@ -1,5 +1,8 @@
 package ezvcard.util;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -31,7 +34,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -95,6 +98,22 @@ public final class XmlUtils {
 	}
 
 	/**
+	 * Parses an XML document from a file.
+	 * @param file the file
+	 * @return the parsed DOM
+	 * @throws SAXException if the XML is not valid
+	 * @throws IOException if there is a problem reading from the file
+	 */
+	public static Document toDocument(File file) throws SAXException, IOException {
+		InputStream in = new BufferedInputStream(new FileInputStream(file));
+		try {
+			return XmlUtils.toDocument(in);
+		} finally {
+			in.close();
+		}
+	}
+
+	/**
 	 * Parses an XML document from an input stream.
 	 * @param in the input stream
 	 * @return the parsed DOM
@@ -132,6 +151,7 @@ public final class XmlUtils {
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		factory.setNamespaceAware(true);
 		factory.setIgnoringComments(true);
+		applyXXEProtection(factory);
 
 		DocumentBuilder builder;
 		try {
@@ -142,6 +162,63 @@ public final class XmlUtils {
 		}
 
 		return builder.parse(in);
+	}
+
+	/**
+	 * Configures a {@link DocumentBuilderFactory} to protect it against XML
+	 * External Entity attacks.
+	 * @param factory the factory
+	 * @see <a href=
+	 * "https://www.owasp.org/index.php/XML_External_Entity_%28XXE%29_Prevention_Cheat_Sheet#Java">
+	 * XXE Cheat Sheet</a>
+	 */
+	public static void applyXXEProtection(DocumentBuilderFactory factory) {
+		Map<String, Boolean> features = new HashMap<String, Boolean>();
+		features.put("http://apache.org/xml/features/disallow-doctype-decl", true);
+		features.put("http://xml.org/sax/features/external-general-entities", false);
+		features.put("http://xml.org/sax/features/external-parameter-entities", false);
+		features.put("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+
+		for (Map.Entry<String, Boolean> entry : features.entrySet()) {
+			String feature = entry.getKey();
+			Boolean value = entry.getValue();
+			try {
+				factory.setFeature(feature, value);
+			} catch (ParserConfigurationException e) {
+				//feature is not supported by the local XML engine, skip it
+			}
+		}
+
+		factory.setXIncludeAware(false);
+		factory.setExpandEntityReferences(false);
+	}
+
+	/**
+	 * Configures a {@link TransformerFactory} to protect it against XML
+	 * External Entity attacks.
+	 * @param factory the factory
+	 * @see <a href=
+	 * "https://www.owasp.org/index.php/XML_External_Entity_%28XXE%29_Prevention_Cheat_Sheet#Java">
+	 * XXE Cheat Sheet</a>
+	 */
+	public static void applyXXEProtection(TransformerFactory factory) {
+		//@formatter:off
+		String[] attributes = {
+			//XMLConstants.ACCESS_EXTERNAL_DTD (Java 7 only)
+			"http://javax.xml.XMLConstants/property/accessExternalDTD",
+
+			//XMLConstants.ACCESS_EXTERNAL_STYLESHEET (Java 7 only)
+			"http://javax.xml.XMLConstants/property/accessExternalStylesheet"
+		};
+		//@formatter:on
+
+		for (String attribute : attributes) {
+			try {
+				factory.setAttribute(attribute, "");
+			} catch (IllegalArgumentException e) {
+				//attribute is not supported by the local XML engine, skip it
+			}
+		}
 	}
 
 	/**
@@ -236,15 +313,6 @@ public final class XmlUtils {
 			}
 		}
 		return elements;
-	}
-
-	/**
-	 * Gets the root element of a document.
-	 * @param parent the document
-	 * @return the root element
-	 */
-	public static Element getRootElement(Document parent) {
-		return getFirstChildElement((Node) parent);
 	}
 
 	/**

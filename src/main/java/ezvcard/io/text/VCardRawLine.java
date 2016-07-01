@@ -4,10 +4,11 @@ import java.util.Arrays;
 
 import lombok.ToString;
 
+import ezvcard.Messages;
 import ezvcard.parameter.VCardParameters;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -158,7 +159,7 @@ public class VCardRawLine {
 
 		public VCardRawLine build() {
 			if (name == null) {
-				throw new IllegalArgumentException("Property name required.");
+				throw Messages.INSTANCE.getIllegalArgumentException(4);
 			}
 			return new VCardRawLine(group, name, parameters, value);
 		}

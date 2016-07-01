@@ -8,7 +8,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 
@@ -20,10 +19,11 @@ import ezvcard.VCardDataType;
 import ezvcard.io.scribe.VCardPropertyScribe;
 import ezvcard.io.xml.XCardDocument;
 import ezvcard.io.xml.XCardDocument.XCardDocumentStreamWriter;
+import ezvcard.io.xml.XCardOutputProperties;
 import ezvcard.property.VCardProperty;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -54,11 +54,7 @@ import ezvcard.property.VCardProperty;
  * @author Michael Angstadt
  */
 public class ChainingXmlWriter extends ChainingWriter<ChainingXmlWriter> {
-	private final String INDENT_AMOUNT = "{http://xml.apache.org/xslt}indent-amount";
-	private final Map<String, String> outputProperties = new HashMap<String, String>();
-	{
-		outputProperties.put(OutputKeys.METHOD, "xml");
-	}
+	private final XCardOutputProperties outputProperties = new XCardOutputProperties();
 	private final Map<String, VCardDataType> parameterDataTypes = new HashMap<String, VCardDataType>(0);
 
 	/**
@@ -71,19 +67,13 @@ public class ChainingXmlWriter extends ChainingWriter<ChainingXmlWriter> {
 	/**
 	 * Sets the number of indent spaces to use for pretty-printing. If not set,
 	 * then the XML will not be pretty-printed.
-	 * @param indent the number of spaces in the indent string or -1 not to
+	 * @param indent the number of spaces in the indent string or null not to
 	 * pretty-print (disabled by default)
 	 * @return this
 	 */
-	public ChainingXmlWriter indent(int indent) {
-		if (indent < 0) {
-			outputProperties.remove(OutputKeys.INDENT);
-			outputProperties.remove(INDENT_AMOUNT);
-			return this;
-		}
-
-		outputProperty(OutputKeys.INDENT, "yes");
-		return outputProperty(INDENT_AMOUNT, indent + "");
+	public ChainingXmlWriter indent(Integer indent) {
+		outputProperties.setIndent(indent);
+		return this;
 	}
 
 	/**
@@ -95,12 +85,8 @@ public class ChainingXmlWriter extends ChainingWriter<ChainingXmlWriter> {
 	 * @return this
 	 */
 	public ChainingXmlWriter xmlVersion(String xmlVersion) {
-		if (xmlVersion == null) {
-			outputProperties.remove(OutputKeys.VERSION);
-			return this;
-		}
-
-		return outputProperty(OutputKeys.VERSION, xmlVersion);
+		outputProperties.setXmlVersion(xmlVersion);
+		return this;
 	}
 
 	/**

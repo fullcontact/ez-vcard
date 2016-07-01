@@ -11,12 +11,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.xml.namespace.QName;
-import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
@@ -38,10 +36,8 @@ import org.xml.sax.helpers.AttributesImpl;
 
 import ezvcard.VCard;
 import ezvcard.VCardDataType;
-import ezvcard.VCardVersion;
 import ezvcard.io.EmbeddedVCardException;
 import ezvcard.io.SkipMeException;
-import ezvcard.io.StreamWriter;
 import ezvcard.io.scribe.VCardPropertyScribe;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.VCardProperty;
@@ -50,7 +46,7 @@ import ezvcard.util.ListMultimap;
 import ezvcard.util.XmlUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -84,6 +80,7 @@ import ezvcard.util.XmlUtils;
  * </p>
  * <p>
  * <b>Example:</b>
+ * </p>
  * 
  * <pre class="brush:java">
  * VCard vcard1 = ...
@@ -98,35 +95,13 @@ import ezvcard.util.XmlUtils;
  *   if (writer != null) writer.close();
  * }
  * </pre>
- * 
- * </p>
  * @author Michael Angstadt
  * @see <a href="http://tools.ietf.org/html/rfc6351">RFC 6351</a>
  */
-public class XCardWriter extends StreamWriter {
+public class XCardWriter extends XCardWriterBase {
 	//How to use SAX to write XML: http://stackoverflow.com/q/4898590
 
-	private final VCardVersion targetVersion = VCardVersion.V4_0; //xCard only supports 4.0
 	private final Document DOC = XmlUtils.createDocument();
-
-	/**
-	 * Defines the names of the XML elements that are used to hold each
-	 * parameter's value.
-	 */
-	private final Map<String, VCardDataType> parameterDataTypes = new HashMap<String, VCardDataType>();
-	{
-		registerParameterDataType(VCardParameters.ALTID, VCardDataType.TEXT);
-		registerParameterDataType(VCardParameters.CALSCALE, VCardDataType.TEXT);
-		registerParameterDataType(VCardParameters.GEO, VCardDataType.URI);
-		registerParameterDataType(VCardParameters.LABEL, VCardDataType.TEXT);
-		registerParameterDataType(VCardParameters.LANGUAGE, VCardDataType.LANGUAGE_TAG);
-		registerParameterDataType(VCardParameters.MEDIATYPE, VCardDataType.TEXT);
-		registerParameterDataType(VCardParameters.PID, VCardDataType.TEXT);
-		registerParameterDataType(VCardParameters.PREF, VCardDataType.INTEGER);
-		registerParameterDataType(VCardParameters.SORT_AS, VCardDataType.TEXT);
-		registerParameterDataType(VCardParameters.TYPE, VCardDataType.TEXT);
-		registerParameterDataType(VCardParameters.TZ, VCardDataType.URI);
-	}
 
 	private final Writer writer;
 	private final TransformerHandler handler;
@@ -137,37 +112,36 @@ public class XCardWriter extends StreamWriter {
 	 * @param out the output stream to write to (UTF-8 encoding will be used)
 	 */
 	public XCardWriter(OutputStream out) {
-		this(out, -1);
+		this(out, (Integer) null);
 	}
 
 	/**
 	 * @param out the output stream to write to (UTF-8 encoding will be used)
 	 * @param indent the number of indent spaces to use for pretty-printing or
-	 * "-1" to disable pretty-printing (disabled by default)
+	 * null to disable pretty-printing (disabled by default)
 	 */
-	public XCardWriter(OutputStream out, int indent) {
+	public XCardWriter(OutputStream out, Integer indent) {
 		this(out, indent, null);
 	}
 
 	/**
 	 * @param out the output stream to write to (UTF-8 encoding will be used)
 	 * @param indent the number of indent spaces to use for pretty-printing or
-	 * "-1" to disable pretty-printing (disabled by default)
+	 * null to disable pretty-printing (disabled by default)
 	 * @param xmlVersion the XML version to use (defaults to "1.0") (Note: Many
 	 * JDKs only support 1.0 natively. For XML 1.1 support, add a JAXP library
 	 * like <a href=
 	 * "http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22xalan%22%20AND%20a%3A%22xalan%22"
 	 * >xalan</a> to your project)
 	 */
-	public XCardWriter(OutputStream out, int indent, String xmlVersion) {
-		this(out, createOutputProperties(indent, xmlVersion));
+	public XCardWriter(OutputStream out, Integer indent, String xmlVersion) {
+		this(out, new XCardOutputProperties(indent, xmlVersion));
 	}
 
 	/**
 	 * @param out the output stream to write to (UTF-8 encoding will be used)
-	 * @param outputProperties properties to assign to the JAXP
-	 * transformer (see {@link Transformer#setOutputProperty})
-	 * >xalan</a> to your project)
+	 * @param outputProperties properties to assign to the JAXP transformer (see
+	 * {@link Transformer#setOutputProperty})
 	 */
 	public XCardWriter(OutputStream out, Map<String, String> outputProperties) {
 		this(utf8Writer(out), outputProperties);
@@ -178,23 +152,23 @@ public class XCardWriter extends StreamWriter {
 	 * @throws IOException if there's a problem opening the file
 	 */
 	public XCardWriter(File file) throws IOException {
-		this(file, -1);
+		this(file, (Integer) null);
 	}
 
 	/**
 	 * @param file the file to write to (UTF-8 encoding will be used)
 	 * @param indent the number of indent spaces to use for pretty-printing or
-	 * "-1" to disable pretty-printing (disabled by default)
+	 * null to disable pretty-printing (disabled by default)
 	 * @throws IOException if there's a problem opening the file
 	 */
-	public XCardWriter(File file, int indent) throws IOException {
+	public XCardWriter(File file, Integer indent) throws IOException {
 		this(file, indent, null);
 	}
 
 	/**
 	 * @param file the file to write to (UTF-8 encoding will be used)
 	 * @param indent the number of indent spaces to use for pretty-printing or
-	 * "-1" to disable pretty-printing (disabled by default)
+	 * null to disable pretty-printing (disabled by default)
 	 * @param xmlVersion the XML version to use (defaults to "1.0") (Note: Many
 	 * JDKs only support 1.0 natively. For XML 1.1 support, add a JAXP library
 	 * like <a href=
@@ -202,14 +176,14 @@ public class XCardWriter extends StreamWriter {
 	 * >xalan</a> to your project)
 	 * @throws IOException if there's a problem opening the file
 	 */
-	public XCardWriter(File file, int indent, String xmlVersion) throws IOException {
-		this(file, createOutputProperties(indent, xmlVersion));
+	public XCardWriter(File file, Integer indent, String xmlVersion) throws IOException {
+		this(file, new XCardOutputProperties(indent, xmlVersion));
 	}
 
 	/**
 	 * @param file the file to write to (UTF-8 encoding will be used)
-	 * @param outputProperties properties to assign to the JAXP
-	 * transformer (see {@link Transformer#setOutputProperty})
+	 * @param outputProperties properties to assign to the JAXP transformer (see
+	 * {@link Transformer#setOutputProperty})
 	 * @throws IOException if there's a problem opening the file
 	 */
 	public XCardWriter(File file, Map<String, String> outputProperties) throws IOException {
@@ -220,36 +194,36 @@ public class XCardWriter extends StreamWriter {
 	 * @param writer the writer to write to
 	 */
 	public XCardWriter(Writer writer) {
-		this(writer, -1);
+		this(writer, (Integer) null);
 	}
 
 	/**
 	 * @param writer the writer to write to
 	 * @param indent the number of indent spaces to use for pretty-printing or
-	 * "-1" to disable pretty-printing (disabled by default)
+	 * null to disable pretty-printing (disabled by default)
 	 */
-	public XCardWriter(Writer writer, int indent) {
+	public XCardWriter(Writer writer, Integer indent) {
 		this(writer, indent, null);
 	}
 
 	/**
 	 * @param writer the writer to write to
 	 * @param indent the number of indent spaces to use for pretty-printing or
-	 * "-1" to disable pretty-printing (disabled by default)
+	 * null to disable pretty-printing (disabled by default)
 	 * @param xmlVersion the XML version to use (defaults to "1.0") (Note: Many
 	 * JDKs only support 1.0 natively. For XML 1.1 support, add a JAXP library
 	 * like <a href=
 	 * "http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22xalan%22%20AND%20a%3A%22xalan%22"
 	 * >xalan</a> to your project)
 	 */
-	public XCardWriter(Writer writer, int indent, String xmlVersion) {
-		this(writer, createOutputProperties(indent, xmlVersion));
+	public XCardWriter(Writer writer, Integer indent, String xmlVersion) {
+		this(writer, new XCardOutputProperties(indent, xmlVersion));
 	}
 
 	/**
 	 * @param writer the writer to write to
-	 * @param outputProperties properties to assign to the JAXP
-	 * transformer (see {@link Transformer#setOutputProperty})
+	 * @param outputProperties properties to assign to the JAXP transformer (see
+	 * {@link Transformer#setOutputProperty})
 	 */
 	public XCardWriter(Writer writer, Map<String, String> outputProperties) {
 		this(writer, null, outputProperties);
@@ -262,27 +236,11 @@ public class XCardWriter extends StreamWriter {
 		this(null, parent, Collections.<String, String> emptyMap());
 	}
 
-	private static Map<String, String> createOutputProperties(int indent, String xmlVersion) {
-		Map<String, String> properties = new HashMap<String, String>();
-		properties.put(OutputKeys.METHOD, "xml");
-
-		if (indent >= 0) {
-			properties.put(OutputKeys.INDENT, "yes");
-			properties.put("{http://xml.apache.org/xslt}indent-amount", indent + "");
-		}
-
-		if (xmlVersion != null) {
-			properties.put(OutputKeys.VERSION, xmlVersion);
-		}
-
-		return properties;
-	}
-
 	private XCardWriter(Writer writer, Node parent, Map<String, String> outputProperties) {
 		this.writer = writer;
 
 		if (parent instanceof Document) {
-			Node root = parent.getFirstChild();
+			Node root = ((Document) parent).getDocumentElement();
 			if (root != null) {
 				parent = root;
 			}
@@ -321,7 +279,7 @@ public class XCardWriter extends StreamWriter {
 			return false;
 		}
 
-		return XmlUtils.hasQName(node, XCardQNames.VCARDS);
+		return XmlUtils.hasQName(node, VCARDS);
 	}
 
 	@Override
@@ -369,26 +327,6 @@ public class XCardWriter extends StreamWriter {
 		}
 	}
 
-	@Override
-	protected VCardVersion getTargetVersion() {
-		return targetVersion;
-	}
-
-	/**
-	 * Registers the data type of an experimental parameter. Experimental
-	 * parameters use the "unknown" data type by default.
-	 * @param parameterName the parameter name (e.g. "x-foo")
-	 * @param dataType the data type or null to remove
-	 */
-	public void registerParameterDataType(String parameterName, VCardDataType dataType) {
-		parameterName = parameterName.toLowerCase();
-		if (dataType == null) {
-			parameterDataTypes.remove(parameterName);
-		} else {
-			parameterDataTypes.put(parameterName, dataType);
-		}
-	}
-
 	/**
 	 * Terminates the XML document and closes the output stream.
 	 */
@@ -429,7 +367,7 @@ public class XCardWriter extends StreamWriter {
 			if (value == null) {
 				return;
 			}
-			propertyElement = XmlUtils.getRootElement(value);
+			propertyElement = value.getDocumentElement();
 		} else {
 			QName qname = scribe.getQName();
 			propertyElement = DOC.createElementNS(qname.getNamespaceURI(), qname.getLocalPart());

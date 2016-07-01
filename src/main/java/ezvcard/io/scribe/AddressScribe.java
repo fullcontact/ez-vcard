@@ -7,12 +7,13 @@ import ezvcard.VCardDataType;
 import ezvcard.VCardVersion;
 import ezvcard.io.html.HCardElement;
 import ezvcard.io.json.JCardValue;
+import ezvcard.io.text.WriteContext;
 import ezvcard.io.xml.XCardElement;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.Address;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -55,87 +56,77 @@ public class AddressScribe extends VCardPropertyScribe<Address> {
 		handlePrefParam(property, copy, version, vcard);
 
 		if (version == VCardVersion.V2_1 || version == VCardVersion.V3_0) {
-			//remove the LABEL parameter
-			//by the time this line of code is reached, VCardWriter will have created a LABEL property from this property's LABEL parameter
-			copy.removeAll("LABEL");
+			/*
+			 * Remove the LABEL parameter. By the time this line of code is
+			 * reached, VCardWriter will have created a LABEL property from this
+			 * property's LABEL parameter
+			 */
+			copy.setLabel(null);
 		}
 	}
 
 	@Override
-	protected String _writeText(Address property, VCardVersion version) {
+	protected String _writeText(Address property, WriteContext context) {
 		//@formatter:off
-		return structured(
-			property.getPoBox(),
-			property.getExtendedAddress(),
-			property.getStreetAddress(),
-			property.getLocality(),
-			property.getRegion(),
-			property.getPostalCode(),
-			property.getCountry()
-		);
+		return structured(context.isIncludeTrailingSemicolons(), new Object[]{
+			property.getPoBoxes(),
+			property.getExtendedAddresses(),
+			property.getStreetAddresses(),
+			property.getLocalities(),
+			property.getRegions(),
+			property.getPostalCodes(),
+			property.getCountries()
+		});
 		//@formatter:on
 	}
 
 	@Override
 	protected Address _parseText(String value, VCardDataType dataType, VCardVersion version, VCardParameters parameters, List<String> warnings) {
-		Address property = new Address();
 		StructuredIterator it = structured(value);
-
-		property.setPoBox(it.nextString());
-		property.setExtendedAddress(it.nextString());
-		property.setStreetAddress(it.nextString());
-		property.setLocality(it.nextString());
-		property.setRegion(it.nextString());
-		property.setPostalCode(it.nextString());
-		property.setCountry(it.nextString());
-
-		return property;
+		return parseStructuredValue(it);
 	}
 
 	@Override
 	protected void _writeXml(Address property, XCardElement parent) {
-		parent.append("pobox", property.getPoBox()); //Note: The XML element must always be added, even if the value is null
-		parent.append("ext", property.getExtendedAddress());
-		parent.append("street", property.getStreetAddress());
-		parent.append("locality", property.getLocality());
-		parent.append("region", property.getRegion());
-		parent.append("code", property.getPostalCode());
-		parent.append("country", property.getCountry());
+		parent.append("pobox", property.getPoBoxes()); //Note: The XML element must always be added, even if the value is null
+		parent.append("ext", property.getExtendedAddresses());
+		parent.append("street", property.getStreetAddresses());
+		parent.append("locality", property.getLocalities());
+		parent.append("region", property.getRegions());
+		parent.append("code", property.getPostalCodes());
+		parent.append("country", property.getCountries());
 	}
 
 	@Override
 	protected Address _parseXml(XCardElement element, VCardParameters parameters, List<String> warnings) {
 		Address property = new Address();
-		property.setPoBox(sanitizeXml(element, "pobox"));
-		property.setExtendedAddress(sanitizeXml(element, "ext"));
-		property.setStreetAddress(sanitizeXml(element, "street"));
-		property.setLocality(sanitizeXml(element, "locality"));
-		property.setRegion(sanitizeXml(element, "region"));
-		property.setPostalCode(sanitizeXml(element, "code"));
-		property.setCountry(sanitizeXml(element, "country"));
+		property.getPoBoxes().addAll(sanitizeXml(element, "pobox"));
+		property.getExtendedAddresses().addAll(sanitizeXml(element, "ext"));
+		property.getStreetAddresses().addAll(sanitizeXml(element, "street"));
+		property.getLocalities().addAll(sanitizeXml(element, "locality"));
+		property.getRegions().addAll(sanitizeXml(element, "region"));
+		property.getPostalCodes().addAll(sanitizeXml(element, "code"));
+		property.getCountries().addAll(sanitizeXml(element, "country"));
 		return property;
 	}
 
-	private String sanitizeXml(XCardElement element, String name) {
-		String value = element.first(name);
-		return (value == null || value.length() == 0) ? null : value;
+	private List<String> sanitizeXml(XCardElement element, String name) {
+		return element.all(name);
 	}
 
 	@Override
 	protected Address _parseHtml(HCardElement element, List<String> warnings) {
 		Address property = new Address();
-		property.setPoBox(element.firstValue("post-office-box"));
-		property.setExtendedAddress(element.firstValue("extended-address"));
-		property.setStreetAddress(element.firstValue("street-address"));
-		property.setLocality(element.firstValue("locality"));
-		property.setRegion(element.firstValue("region"));
-		property.setPostalCode(element.firstValue("postal-code"));
-		property.setCountry(element.firstValue("country-name"));
+		property.getPoBoxes().addAll(element.allValues("post-office-box"));
+		property.getExtendedAddresses().addAll(element.allValues("extended-address"));
+		property.getStreetAddresses().addAll(element.allValues("street-address"));
+		property.getLocalities().addAll(element.allValues("locality"));
+		property.getRegions().addAll(element.allValues("region"));
+		property.getPostalCodes().addAll(element.allValues("postal-code"));
+		property.getCountries().addAll(element.allValues("country-name"));
 
 		List<String> types = element.types();
-		for (String type : types) {
-			property.getParameters().addType(type);
-		}
+		property.getParameters().putAll(VCardParameters.TYPE, types);
 
 		return property;
 	}
@@ -144,29 +135,33 @@ public class AddressScribe extends VCardPropertyScribe<Address> {
 	protected JCardValue _writeJson(Address property) {
 		//@formatter:off
 		return JCardValue.structured(
-			property.getPoBox(),
-			property.getExtendedAddress(),
-			property.getStreetAddress(),
-			property.getLocality(),
-			property.getRegion(),
-			property.getPostalCode(),
-			property.getCountry()
+			property.getPoBoxes(),
+			property.getExtendedAddresses(),
+			property.getStreetAddresses(),
+			property.getLocalities(),
+			property.getRegions(),
+			property.getPostalCodes(),
+			property.getCountries()
 		);
 		//@formatter:on
 	}
 
 	@Override
 	protected Address _parseJson(JCardValue value, VCardDataType dataType, VCardParameters parameters, List<String> warnings) {
-		Address property = new Address();
 		StructuredIterator it = structured(value);
+		return parseStructuredValue(it);
+	}
 
-		property.setPoBox(it.nextString());
-		property.setExtendedAddress(it.nextString());
-		property.setStreetAddress(it.nextString());
-		property.setLocality(it.nextString());
-		property.setRegion(it.nextString());
-		property.setPostalCode(it.nextString());
-		property.setCountry(it.nextString());
+	private Address parseStructuredValue(StructuredIterator it) {
+		Address property = new Address();
+
+		property.getPoBoxes().addAll(it.nextComponent());
+		property.getExtendedAddresses().addAll(it.nextComponent());
+		property.getStreetAddresses().addAll(it.nextComponent());
+		property.getLocalities().addAll(it.nextComponent());
+		property.getRegions().addAll(it.nextComponent());
+		property.getPostalCodes().addAll(it.nextComponent());
+		property.getCountries().addAll(it.nextComponent());
 
 		return property;
 	}

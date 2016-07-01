@@ -7,15 +7,19 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import ezvcard.Messages;
 import ezvcard.VCardVersion;
 import ezvcard.parameter.Encoding;
 import ezvcard.parameter.VCardParameters;
+import ezvcard.util.ClearableStringBuilder;
 import ezvcard.util.StringUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -52,9 +56,15 @@ import ezvcard.util.StringUtils;
  */
 public class VCardRawReader implements Closeable {
 	private final Reader reader;
-	private final Buffer buffer = new Buffer();
-	private final Buffer unescapedBuffer = new Buffer();
-	private final Buffer unfoldedLine = new Buffer();
+	private final ClearableStringBuilder buffer = new ClearableStringBuilder();
+	private final ClearableStringBuilder unescapedBuffer = new ClearableStringBuilder();
+	private final ClearableStringBuilder unfoldedLine = new ClearableStringBuilder();
+	private final Map<String, VCardVersion> versionAliases = new HashMap<String, VCardVersion>();
+	{
+		for (VCardVersion version : VCardVersion.values()) {
+			versionAliases.put(version.getVersion(), version);
+		}
+	}
 
 	private boolean eos = false;
 	private boolean caretDecodingEnabled = true;
@@ -339,16 +349,16 @@ public class VCardRawReader implements Closeable {
 		}
 
 		if (propertyName == null) {
-			throw new VCardParseException(unfoldedLine.get(), propertyLineNum);
+			throw new VCardParseException(unfoldedLine.get(), propertyLineNum, Messages.INSTANCE.getExceptionMessage(5));
 		}
 
 		String value = buffer.getAndClear();
 		unescapedBuffer.clear();
 
 		if ("VERSION".equalsIgnoreCase(propertyName)) {
-			VCardVersion version = VCardVersion.valueOfByStr(value);
+			VCardVersion version = versionAliases.get(value);
 			if (version == null) {
-				throw new InvalidVersionException(value, unfoldedLine.get(), propertyLineNum);
+				throw new VCardParseException(unfoldedLine.get(), propertyLineNum, Messages.INSTANCE.getExceptionMessage(6));
 			}
 			this.version = version;
 		}
@@ -364,6 +374,7 @@ public class VCardRawReader implements Closeable {
 	 * </p>
 	 *
 	 * <table class="simpleTable">
+	 * <caption>Characters encoded by circumflex accent encoding</caption>
 	 * <tr>
 	 * <th>Raw Character</th>
 	 * <th>Encoded Character</th>
@@ -406,6 +417,7 @@ public class VCardRawReader implements Closeable {
 	 * </p>
 	 *
 	 * <table class="simpleTable">
+	 * <caption>Characters encoded by circumflex accent encoding</caption>
 	 * <tr>
 	 * <th>Raw Character</th>
 	 * <th>Encoded Character</th>
@@ -438,6 +450,18 @@ public class VCardRawReader implements Closeable {
 	 */
 	public void setCaretDecodingEnabled(boolean enable) {
 		caretDecodingEnabled = enable;
+	}
+
+	/**
+	 * Defines how the reader should parse a vCard when it encounters a
+	 * non-standard version number. By default, the reader throws a
+	 * {@link VCardParseException} when this happens.
+	 * @param version the version number
+	 * @param parseAccordingTo the parsing rules the reader should use when a
+	 * vCard with the given version number is encountered
+	 */
+	public void setVersionAlias(String version, VCardVersion parseAccordingTo) {
+		versionAliases.put(version, parseAccordingTo);
 	}
 
 	/**
@@ -496,77 +520,6 @@ public class VCardRawReader implements Closeable {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Wraps a {@link StringBuilder} object, providing utility methods.
-	 */
-	private static class Buffer {
-		private final StringBuilder sb = new StringBuilder();
-
-		/**
-		 * Clears the buffer.
-		 * @return this
-		 */
-		public Buffer clear() {
-			sb.setLength(0);
-			return this;
-		}
-
-		/**
-		 * Gets the buffer's contents.
-		 * @return the buffer's contents
-		 */
-		public String get() {
-			return sb.toString();
-		}
-
-		/**
-		 * Gets the buffer's contents, then clears it.
-		 * @return the buffer's contents
-		 */
-		public String getAndClear() {
-			String string = get();
-			clear();
-			return string;
-		}
-
-		/**
-		 * Appends a character to the buffer.
-		 * @param ch the character to append
-		 * @return this
-		 */
-		public Buffer append(char ch) {
-			sb.append(ch);
-			return this;
-		}
-
-		/**
-		 * Appends a character sequence to the buffer.
-		 * @param string the character sequence to append
-		 * @return this
-		 */
-		public Buffer append(CharSequence string) {
-			sb.append(string);
-			return this;
-		}
-
-		/**
-		 * Removes the last character from the buffer.
-		 * @return this
-		 */
-		public Buffer chop() {
-			sb.setLength(sb.length() - 1);
-			return this;
-		}
-
-		/**
-		 * Gets the length of the buffer.
-		 * @return the buffer's length
-		 */
-		public int length() {
-			return sb.length();
-		}
 	}
 
 	/**

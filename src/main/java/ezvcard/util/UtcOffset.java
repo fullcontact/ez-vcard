@@ -1,11 +1,11 @@
 package ezvcard.util;
 
 import java.util.TimeZone;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import ezvcard.Messages;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,10 @@ public final class UtcOffset {
 	 * integer is ignored)
 	 */
 	public UtcOffset(boolean positive, int hour, int minute) {
-		//Note: The (hour, minute) constructor was removed because it could not handle timezones such as "-0030"
+		/*
+		 * Note: The (hour, minute) constructor was removed because it could not
+		 * handle timezones such as "-0030".
+		 */
 		int sign = positive ? 1 : -1;
 		hour = Math.abs(hour);
 		minute = Math.abs(minute);
@@ -66,23 +69,49 @@ public final class UtcOffset {
 	 * @throws IllegalArgumentException if the text cannot be parsed
 	 */
 	public static UtcOffset parse(String text) {
-		Pattern timeZoneRegex = Pattern.compile("^([-\\+])?(\\d{1,2})(:?(\\d{2}))?$");
-		Matcher m = timeZoneRegex.matcher(text);
-
-		if (!m.find()) {
-			throw new IllegalArgumentException("Offset string is not in ISO8610 format: " + text);
+		int i = 0;
+		char sign = text.charAt(i);
+		boolean positive = true;
+		if (sign == '-') {
+			positive = false;
+			i++;
+		} else if (sign == '+') {
+			i++;
 		}
 
-		String signStr = m.group(1);
-		boolean positive = !"-".equals(signStr);
+		int maxLength = i + 4;
+		int colon = text.indexOf(':', i);
+		if (colon >= 0) {
+			maxLength++;
+		}
+		if (text.length() > maxLength) {
+			throw Messages.INSTANCE.getIllegalArgumentException(40, text);
+		}
 
-		String hourStr = m.group(2);
-		int hourOffset = Integer.parseInt(hourStr);
+		String hourStr, minuteStr = null;
+		if (colon < 0) {
+			hourStr = text.substring(i);
+			int minutePos = hourStr.length() - 2;
+			if (minutePos > 0) {
+				minuteStr = hourStr.substring(minutePos);
+				hourStr = hourStr.substring(0, minutePos);
+			}
+		} else {
+			hourStr = text.substring(i, colon);
+			if (colon < text.length() - 1) {
+				minuteStr = text.substring(colon + 1);
+			}
+		}
 
-		String minuteStr = m.group(4);
-		int minuteOffset = (minuteStr == null) ? 0 : Integer.parseInt(minuteStr);
+		int hour, minute;
+		try {
+			hour = Integer.parseInt(hourStr);
+			minute = (minuteStr == null) ? 0 : Integer.parseInt(minuteStr);
+		} catch (NumberFormatException e) {
+			throw Messages.INSTANCE.getIllegalArgumentException(40, text);
+		}
 
-		return new UtcOffset(positive, hourOffset, minuteOffset);
+		return new UtcOffset(positive, hour, minute);
 	}
 
 	/**

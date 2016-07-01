@@ -6,7 +6,7 @@ import ezvcard.util.PartialDate;
 import lombok.*;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -97,6 +97,9 @@ import lombok.*;
  * <b>Supported versions:</b> {@code 2.1, 3.0, 4.0}
  * </p>
  * @author Michael Angstadt
+ * @see <a href="http://tools.ietf.org/html/rfc6350#page-30">RFC 6350 p.30</a>
+ * @see <a href="http://tools.ietf.org/html/rfc2426#page-11">RFC 2426 p.11</a>
+ * @see <a href="http://www.imc.org/pdi/vcard-21.doc">vCard 2.1 p.11</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -133,5 +136,18 @@ public class Birthday extends DateOrTimeProperty {
 	 */
 	public Birthday(String text) {
 		super(text);
+	}
+
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public Birthday(Birthday original) {
+		super(original);
+	}
+
+	@Override
+	public Birthday copy() {
+		return new Birthday(this);
 	}
 }

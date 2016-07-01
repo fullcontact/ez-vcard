@@ -6,7 +6,7 @@ import ezvcard.io.html.HCardElement;
 import ezvcard.property.Nickname;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@ public class NicknameScribe extends ListPropertyScribe<Nickname> {
 	@Override
 	protected Nickname _parseHtml(HCardElement element, List<String> warnings) {
 		Nickname property = _newInstance();
-		property.addValue(element.value());
+		property.getValues().add(element.value());
 		return property;
 	}
 

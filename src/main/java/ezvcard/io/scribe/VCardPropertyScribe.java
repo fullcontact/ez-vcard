@@ -22,8 +22,11 @@ import ezvcard.io.EmbeddedVCardException;
 import ezvcard.io.SkipMeException;
 import ezvcard.io.html.HCardElement;
 import ezvcard.io.json.JCardValue;
+import ezvcard.io.json.JsonValue;
 import ezvcard.io.text.VCardRawWriter;
+import ezvcard.io.text.WriteContext;
 import ezvcard.io.xml.XCardElement;
+import ezvcard.io.xml.XCardElement.XCardValue;
 import ezvcard.parameter.VCardParameters;
 import ezvcard.property.Categories;
 import ezvcard.property.Organization;
@@ -31,10 +34,9 @@ import ezvcard.property.StructuredName;
 import ezvcard.property.VCardProperty;
 import ezvcard.util.StringUtils.JoinCallback;
 import ezvcard.util.VCardDateFormat;
-import ezvcard.util.XmlUtils;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -59,7 +61,7 @@ import ezvcard.util.XmlUtils;
  */
 
 /**
- * Base class for vCard property scribes (marshallers).
+ * Base class for vCard property scribes (aka "marshallers" or "serializers").
  * @param <T> the property class
  * @author Michael Angstadt
  */
@@ -69,7 +71,7 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 	protected final QName qname;
 
 	/**
-	 * Creates a new marshaller.
+	 * Creates a new scribe.
 	 * @param clazz the property class
 	 * @param propertyName the property name (e.g. "FN")
 	 */
@@ -78,7 +80,7 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 	}
 
 	/**
-	 * Creates a new marshaller.
+	 * Creates a new scribe.
 	 * @param clazz the property class
 	 * @param propertyName the property name (e.g. "FN")
 	 * @param qname the XML element name and namespace to use for xCard
@@ -165,13 +167,13 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 	/**
 	 * Marshals a property's value to a string.
 	 * @param property the property
-	 * @param version the version of the vCard that is being generated
-	 * @return the marshalled value
+	 * @param context contains information about the vCard being written, such
+	 * as the target version
 	 * @throws SkipMeException if the property should not be written to the data
 	 * stream
 	 */
-	public final String writeText(T property, VCardVersion version) {
-		return _writeText(property, version);
+	public final String writeText(T property, WriteContext context) {
+		return _writeText(property, context);
 	}
 
 	/**
@@ -332,17 +334,18 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 	/**
 	 * Marshals a property's value to a string.
 	 * @param property the property
-	 * @param version the version of the vCard that is being generated
+	 * @param context contains information about the vCard being written, such
+	 * as the target version
 	 * @return the marshalled value
 	 * @throws SkipMeException if the property should not be written to the data
 	 * stream
 	 */
-	protected abstract String _writeText(T property, VCardVersion version);
+	protected abstract String _writeText(T property, WriteContext context);
 
 	/**
 	 * <p>
 	 * Marshals a property's value to an XML element (xCard).
-	 * <p>
+	 * </p>
 	 * <p>
 	 * This method should be overridden by child classes that wish to support
 	 * xCard. The default implementation of this method will append one child
@@ -358,7 +361,7 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 	 * stream
 	 */
 	protected void _writeXml(T property, XCardElement element) {
-		String value = writeText(property, VCardVersion.V4_0);
+		String value = writeText(property, new WriteContext(VCardVersion.V4_0, null, false));
 		VCardDataType dataType = dataType(property, VCardVersion.V4_0);
 		element.append(dataType, value);
 	}
@@ -379,7 +382,7 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 	 * stream
 	 */
 	protected JCardValue _writeJson(T property) {
-		String value = writeText(property, VCardVersion.V4_0);
+		String value = writeText(property, new WriteContext(VCardVersion.V4_0, null, false));
 		return JCardValue.single(value);
 	}
 
@@ -416,10 +419,11 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 	 * This method should be overridden by child classes that wish to support
 	 * xCard. The default implementation of this method will find the first
 	 * child element with the xCard namespace. The element's name will be used
-	 * as the property's data type and its text content will be passed into the
-	 * {@link #_parseText} method. If no such child element is found, then the
-	 * parent element's text content will be passed into {@link #_parseText} and
-	 * the data type will be null.
+	 * as the property's data type and its text content (escaped for inclusion
+	 * in a text-based vCard, e.g. escaping comma characters) will be passed
+	 * into the {@link #_parseText} method. If no such child element is found,
+	 * then the parent element's text content will be passed into
+	 * {@link #_parseText} and the data type will be {@code null}.
 	 * </p>
 	 * @param element the property's XML element
 	 * @param parameters the parsed parameters. These parameters will be
@@ -436,31 +440,10 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 	 * {@link VCard} object
 	 */
 	protected T _parseXml(XCardElement element, VCardParameters parameters, List<String> warnings) {
-		String value = null;
-		VCardDataType dataType = null;
-		Element rawElement = element.element();
-		VCardVersion version = element.version();
-
-		//get the text content of the first child element with the xCard namespace
-		List<Element> children = XmlUtils.toElementList(rawElement.getChildNodes());
-		for (Element child : children) {
-			String elementNamespace = version.getXmlNamespace();
-			String childNamespace = child.getNamespaceURI();
-			if (elementNamespace.equals(childNamespace)) {
-				String dataTypeStr = child.getLocalName();
-				dataType = "unknown".equals(dataTypeStr) ? null : VCardDataType.get(dataTypeStr);
-				value = child.getTextContent();
-				break;
-			}
-		}
-
-		if (dataType == null) {
-			//get the text content of the property element
-			value = rawElement.getTextContent();
-		}
-
-		value = escape(value);
-		return _parseText(value, dataType, version, parameters, warnings);
+		XCardValue firstValue = element.firstValue();
+		VCardDataType dataType = firstValue.getDataType();
+		String value = escape(firstValue.getValue());
+		return _parseText(value, dataType, element.version(), parameters, warnings);
 	}
 
 	/**
@@ -477,6 +460,7 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 	 * @param warnings allows the programmer to alert the user to any
 	 * note-worthy (but non-critical) issues that occurred during the
 	 * unmarshalling process
+	 * @return the unmarshalled property object
 	 * @throws CannotParseException if the property value could not be parsed
 	 * @throws SkipMeException if this property should NOT be added to the
 	 * {@link VCard} object
@@ -559,18 +543,26 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 	 * {@link VCard} object
 	 */
 	protected T _parseJson(JCardValue value, VCardDataType dataType, VCardParameters parameters, List<String> warnings) {
-		return _parseText(jcardValueToString(value), dataType, VCardVersion.V4_0, parameters, warnings);
+		String valueStr = jcardValueToString(value);
+		return _parseText(valueStr, dataType, VCardVersion.V4_0, parameters, warnings);
 	}
 
+	/**
+	 * Converts a jCard value to its plain-text format representation.
+	 * @param value the jCard value
+	 * @return the plain-text format representation (for example, "1,2,3" for a
+	 * list of values)
+	 */
 	private static String jcardValueToString(JCardValue value) {
-		if (value.getValues().size() > 1) {
+		List<JsonValue> values = value.getValues();
+		if (values.size() > 1) {
 			List<String> multi = value.asMulti();
 			if (!multi.isEmpty()) {
 				return list(multi);
 			}
 		}
 
-		if (!value.getValues().isEmpty() && value.getValues().get(0).getArray() != null) {
+		if (!values.isEmpty() && values.get(0).getArray() != null) {
 			List<List<String>> structured = value.asStructured();
 			if (!structured.isEmpty()) {
 				return structured(structured.toArray());
@@ -808,6 +800,7 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 	 * @param values the values to write (the {@code toString()} method is
 	 * invoked on each object, null objects are ignored, e.g. ["one", "two",
 	 * "three,four"])
+	 * @param <T> the property value class
 	 * @return the property value (e.g. "one,two,three\,four")
 	 */
 	protected static <T> String list(Collection<T> values) {
@@ -883,25 +876,90 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 	 * have their {@code toString()} method invoked to generate the string
 	 * value.
 	 * </p>
+	 * <p>
+	 * The semicolon delimiters for empty or null values at the end of the
+	 * values list will not be included in the final string.
+	 * </p>
 	 * @param values the values to write
 	 * @return the structured value string
 	 */
 	protected static String structured(Object... values) {
-		return join(Arrays.asList(values), ";", new JoinCallback<Object>() {
-			public void handle(StringBuilder sb, Object value) {
-				if (value == null) {
-					return;
-				}
+		return structured(false, values);
+	}
 
-				if (value instanceof Collection) {
-					Collection<?> list = (Collection<?>) value;
-					sb.append(list(list));
-					return;
+	/**
+	 * <p>
+	 * Writes a "structured" property value. This is used in plain-text vCards
+	 * to marshal properties such as {@link StructuredName}.
+	 * </p>
+	 * <p>
+	 * This method accepts a list of {@link Object} instances.
+	 * {@link Collection} objects will be treated as multi-valued components.
+	 * Null objects will be treated as empty components. All other objects will
+	 * have their {@code toString()} method invoked to generate the string
+	 * value.
+	 * </p>
+	 * @param includeTrailingSemicolons true to include the semicolon delimiters
+	 * for empty or null values at the end of the values list, false to trim
+	 * them
+	 * @param values the values to write
+	 * @return the structured value string
+	 */
+	protected static String structured(boolean includeTrailingSemicolons, Object... values) {
+		StringBuilder sb = new StringBuilder();
+		int skippedSemicolons = 0;
+		boolean first = true;
+		for (Object value : values) {
+			if (value == null) {
+				if (first) {
+					first = false;
+				} else {
+					if (includeTrailingSemicolons) {
+						sb.append(';');
+					} else {
+						skippedSemicolons++;
+					}
 				}
-
-				sb.append(escape(value.toString()));
+				continue;
 			}
-		});
+
+			String strValue;
+			if (value instanceof Collection) {
+				Collection<?> list = (Collection<?>) value;
+				strValue = list(list);
+			} else {
+				strValue = escape(value.toString());
+			}
+
+			if (strValue.length() == 0) {
+				if (first) {
+					first = false;
+				} else {
+					if (includeTrailingSemicolons) {
+						sb.append(';');
+					} else {
+						skippedSemicolons++;
+					}
+				}
+				continue;
+			}
+
+			if (!includeTrailingSemicolons) {
+				for (int i = 0; i < skippedSemicolons; i++) {
+					sb.append(';');
+				}
+				skippedSemicolons = 0;
+			}
+
+			if (first) {
+				first = false;
+			} else {
+				sb.append(';');
+			}
+			sb.append(strValue);
+		}
+
+		return sb.toString();
 	}
 
 	/**
@@ -1134,14 +1192,14 @@ public abstract class VCardPropertyScribe<T extends VCardProperty> {
 			}
 
 			if (property == mostPreferred) {
-				copy.addType("pref");
+				copy.put(VCardParameters.TYPE, "pref");
 			}
 
 			break;
 		case V4_0:
-			for (String type : property.getParameters().getTypes()) {
+			for (String type : property.getParameters().get(VCardParameters.TYPE)) {
 				if ("pref".equalsIgnoreCase(type)) {
-					copy.removeType(type);
+					copy.remove(VCardParameters.TYPE, type);
 					copy.setPref(1);
 					break;
 				}

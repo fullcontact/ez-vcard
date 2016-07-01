@@ -1,7 +1,7 @@
 package ezvcard.property;
 
 /*
- Copyright (c) 2012-2015, Michael Angstadt
+ Copyright (c) 2012-2016, Michael Angstadt
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -45,5 +45,13 @@ public class UriProperty extends TextProperty {
 	 */
 	public UriProperty(String uri) {
 		super(uri);
+	}
+
+	/**
+	 * Copy constructor.
+	 * @param original the property to make a copy of
+	 */
+	public UriProperty(UriProperty original) {
+		super(original);
 	}
 }
