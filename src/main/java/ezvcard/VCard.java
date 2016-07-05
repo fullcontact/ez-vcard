@@ -4366,15 +4366,10 @@ public class VCard implements Iterable<VCardProperty> {
 	 * @param clazz the property class
 	 * @return the properties
 	 */
+	@SuppressWarnings({"rawtypes","unchecked"})
 	public <T extends VCardProperty> List<T> getProperties(Class<T> clazz) {
 		List<VCardProperty> properties = this.properties.get(clazz);
-
-		//cast to the requested class
-		List<T> listToReturn = new ArrayList<T>(properties.size());
-		for (VCardProperty property : properties) {
-			listToReturn.add(clazz.cast(property));
-		}
-		return listToReturn;
+		return (List<T>)(List)properties;
 	}
 
 	/**
